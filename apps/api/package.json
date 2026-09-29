@@ -1,0 +1,31 @@
+{
+  "name": "@marthub/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js",
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "node prisma/seed.js",
+    "test:integration": "node --test test/integration/*.test.js",
+    "media:cleanup": "node src/modules/media/run-cleanup.js"
+  },
+  "dependencies": {
+    "jose": "6.2.12",
+    "argon2": "0.45.1",
+    "@marthub/contracts": "0.1.0",
+    "express": "5.2.1",
+    "helmet": "^8.1.0",
+    "@prisma/client": "7.10.0",
+    "@prisma/adapter-pg": "7.10.0",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "supertest": "^7.2.2",
+    "prisma": "7.10.0"
+  }
+}

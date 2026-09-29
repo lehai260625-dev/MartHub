@@ -1,0 +1,10 @@
+node_modules
+.next
+.cache
+package-lock.json
+apps/web/AGENTS.md
+apps/web/CLAUDE.md
+**/prisma/migrations
+**/schema.prisma
+playwright-report
+test-results

@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Next.js and application builds
+.next/
+out/
+dist/
+build/
+
+# Test and tooling output
+coverage/
+playwright-report/
+test-results/
+.turbo/
+.cache/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime files
+*.pid
+*.pid.lock
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Operating systems
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary databases and Prisma local artifacts
+.tmp/
+*.db
+*.db-journal

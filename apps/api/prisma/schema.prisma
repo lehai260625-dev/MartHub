@@ -1,0 +1,307 @@
+// JavaScript runtime output.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AuthThrottle {
+  key       String   @id @db.VarChar(64)
+  attempts  Int      @default(0)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+
+  @@index([expiresAt])
+  @@map("auth_throttles")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+model User {
+  id                String                @id @default(uuid()) @db.Uuid
+  email             String                @unique
+  passwordHash      String                @map("password_hash")
+  firstName         String                @map("first_name")
+  lastName          String                @map("last_name")
+  phone             String?
+  role              UserRole              @default(CUSTOMER)
+  status            UserStatus            @default(ACTIVE)
+  lastLoginAt       DateTime?             @map("last_login_at") @db.Timestamptz(3)
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt        DateTime?             @map("archived_at") @db.Timestamptz(3)
+  refreshSessions   RefreshSession[]
+  addresses         Address[]
+  createdPrices     ProductPriceHistory[] @relation("PriceCreator")
+  createdPromotions Promotion[]           @relation("PromotionCreator")
+  inventoryMovements InventoryMovement[]  @relation("InventoryMovementActor")
+
+  @@index([status, createdAt])
+  @@map("users")
+}
+
+model Address {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  label         String
+  recipientName String    @map("recipient_name")
+  phone         String
+  line1         String
+  line2         String?
+  ward          String
+  district      String
+  province      String
+  postalCode    String?   @map("postal_code")
+  isDefault     Boolean   @default(false) @map("is_default")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt    DateTime? @map("archived_at") @db.Timestamptz(3)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId, archivedAt])
+  @@map("addresses")
+}
+
+model RefreshSession {
+  id              String           @id @default(uuid()) @db.Uuid
+  userId          String           @map("user_id") @db.Uuid
+  tokenHash       String           @unique @map("token_hash") @db.VarChar(64)
+  familyId        String           @map("family_id") @db.Uuid
+  parentSessionId String?          @map("parent_session_id") @db.Uuid
+  userAgent       String?          @map("user_agent")
+  ipAddress       String?          @map("ip_address")
+  expiresAt       DateTime         @map("expires_at") @db.Timestamptz(3)
+  lastUsedAt      DateTime?        @map("last_used_at") @db.Timestamptz(3)
+  revokedAt       DateTime?        @map("revoked_at") @db.Timestamptz(3)
+  revokeReason    String?          @map("revoke_reason")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  parentSession   RefreshSession?  @relation("SessionLineage", fields: [parentSessionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  childSessions   RefreshSession[] @relation("SessionLineage")
+
+  @@index([userId, revokedAt])
+  @@index([familyId, revokedAt])
+  @@index([expiresAt])
+  @@index([parentSessionId])
+  @@map("refresh_sessions")
+}
+
+enum CategoryStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum PromotionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum PromotionPlacement {
+  HERO_PRIMARY
+  HERO_SECONDARY
+  EDITORIAL
+}
+
+enum MediaOwnerType {
+  PRODUCT_IMAGE
+  PROMOTION_MEDIA
+}
+
+enum MediaCleanupStatus {
+  PENDING
+  FAILED
+  COMPLETED
+}
+
+enum InventoryMovementType {
+  INITIAL
+  ADJUSTMENT
+  ORDER_DEBIT
+  ORDER_CANCEL_RESTORE
+}
+
+model Category {
+  id            String         @id @default(uuid()) @db.Uuid
+  parentId      String?        @map("parent_id") @db.Uuid
+  name          String
+  slug          String         @unique
+  description   String?
+  imagePublicId String?        @map("image_public_id")
+  imageUrl      String?        @map("image_url")
+  status        CategoryStatus @default(ACTIVE)
+  sortOrder     Int            @default(0) @map("sort_order")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt    DateTime?      @map("archived_at") @db.Timestamptz(3)
+  parent        Category?      @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  children      Category[]     @relation("CategoryTree")
+  products      Product[]
+
+  @@index([parentId, status, sortOrder])
+  @@index([status, sortOrder])
+  @@map("categories")
+}
+
+model Product {
+  id               String                @id @default(uuid()) @db.Uuid
+  categoryId       String                @map("category_id") @db.Uuid
+  sku              String                @unique
+  name             String
+  slug             String                @unique
+  shortDescription String?               @map("short_description")
+  description      String?
+  brand            String?
+  sellingUnit      String                @map("selling_unit")
+  status           ProductStatus         @default(DRAFT)
+  isFeatured       Boolean               @default(false) @map("is_featured")
+  isNew            Boolean               @default(false) @map("is_new")
+  isPopular        Boolean               @default(false) @map("is_popular")
+  publishedAt      DateTime?             @map("published_at") @db.Timestamptz(3)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt       DateTime?             @map("archived_at") @db.Timestamptz(3)
+  category         Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  images           ProductImage[]
+  prices           ProductPriceHistory[]
+  inventory        Inventory?
+  mediaCleanups    MediaCleanup[]
+  inventoryMovements InventoryMovement[]
+
+  @@index([categoryId, status, createdAt])
+  @@index([status, isFeatured])
+  @@index([status, isNew, publishedAt])
+  @@index([status, isPopular])
+  @@index([status, createdAt])
+  @@map("products")
+}
+
+model ProductImage {
+  id                 String   @id @default(uuid()) @db.Uuid
+  productId          String   @map("product_id") @db.Uuid
+  cloudinaryPublicId String   @unique @map("cloudinary_public_id")
+  url                String
+  altText            String   @map("alt_text")
+  width              Int
+  height             Int
+  sortOrder          Int      @map("sort_order")
+  isPrimary          Boolean  @default(false) @map("is_primary")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([productId, sortOrder])
+  @@map("product_images")
+}
+
+model MediaCleanup {
+  id                 String             @id @default(uuid()) @db.Uuid
+  ownerType          MediaOwnerType     @default(PRODUCT_IMAGE) @map("owner_type")
+  productId          String?            @map("product_id") @db.Uuid
+  productImageId     String?            @unique @map("product_image_id") @db.Uuid
+  promotionId        String?            @map("promotion_id") @db.Uuid
+  cloudinaryPublicId String             @unique @map("cloudinary_public_id")
+  status             MediaCleanupStatus @default(PENDING)
+  attemptCount       Int                @default(0) @map("attempt_count")
+  nextAttemptAt      DateTime?           @map("next_attempt_at") @db.Timestamptz(3)
+  lastErrorCode      String?             @map("last_error_code")
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  completedAt        DateTime?           @map("completed_at") @db.Timestamptz(3)
+  product            Product?           @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  promotion          Promotion?         @relation(fields: [promotionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@index([productId, createdAt])
+  @@index([promotionId, createdAt])
+  @@map("media_cleanup")
+}
+model ProductPriceHistory {
+  id              String    @id @default(uuid()) @db.Uuid
+  productId       String    @map("product_id") @db.Uuid
+  price           BigInt    @db.BigInt
+  compareAtPrice  BigInt?   @map("compare_at_price") @db.BigInt
+  startsAt        DateTime  @map("starts_at") @db.Timestamptz(3)
+  endsAt          DateTime? @map("ends_at") @db.Timestamptz(3)
+  createdByUserId String?   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdBy       User?     @relation("PriceCreator", fields: [createdByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([productId, startsAt(sort: Desc)])
+  @@index([productId, endsAt])
+  @@map("product_price_history")
+}
+
+model Inventory {
+  id             String   @id @default(uuid()) @db.Uuid
+  productId      String   @unique @map("product_id") @db.Uuid
+  quantityOnHand Int      @default(0) @map("quantity_on_hand")
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([quantityOnHand])
+  @@map("inventory")
+}
+
+model InventoryMovement {
+  id             String                @id @default(uuid()) @db.Uuid
+  productId      String                @map("product_id") @db.Uuid
+  type           InventoryMovementType
+  quantityDelta  Int                   @map("quantity_delta")
+  quantityAfter  Int                   @map("quantity_after")
+  orderId        String?               @map("order_id") @db.Uuid
+  actorUserId    String?               @map("actor_user_id") @db.Uuid
+  reason         String?
+  idempotencyKey String?               @map("idempotency_key")
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  product        Product               @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actor          User?                 @relation("InventoryMovementActor", fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([productId, createdAt(sort: Desc)])
+  @@index([orderId, type])
+  @@map("inventory_movements")
+}
+
+model Promotion {
+  id              String             @id @default(uuid()) @db.Uuid
+  title           String
+  subtitle        String?
+  imagePublicId   String?            @unique @map("image_public_id")
+  imageUrl        String?            @map("image_url")
+  internalHref    String             @map("internal_href")
+  placement       PromotionPlacement
+  status          PromotionStatus    @default(DRAFT)
+  sortOrder       Int                @default(0) @map("sort_order")
+  startsAt        DateTime           @map("starts_at") @db.Timestamptz(3)
+  endsAt          DateTime?          @map("ends_at") @db.Timestamptz(3)
+  createdByUserId String?            @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt      DateTime?          @map("archived_at") @db.Timestamptz(3)
+  createdBy       User?              @relation("PromotionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  mediaCleanups    MediaCleanup[]
+
+  @@index([placement, status, startsAt, endsAt])
+  @@index([status, sortOrder])
+  @@map("promotions")
+}
+
+
+
