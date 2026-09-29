@@ -42,6 +42,7 @@ async function setup(t) {
       ['active', 'ACTIVE'],
       ['out-of-stock', 'ACTIVE'],
       ['draft', 'DRAFT'],
+      ['second-active', 'ACTIVE'],
     ].map(([label, status]) =>
       prisma.product.create({
         data: {
@@ -286,4 +287,200 @@ test('rejected products create no cart and concurrent adds retain one row withou
   });
   assert.equal(cart.items.length, 1);
   assert.equal(cart.items[0].quantity, 8);
+});
+
+test('cart quantity update is owner-scoped, strict, bounded, and rejects unavailable products explicitly', async (t) => {
+  const { app, prisma, tokens, products } = await setup(t);
+  const owned = await request(app)
+    .post('/api/v1/cart/items')
+    .set('Authorization', bearer(tokens[0]))
+    .send({ productId: products[0].id, quantity: 2 })
+    .expect(200);
+  const itemId = owned.body.data.items[0].id;
+  await request(app)
+    .patch(`/api/v1/cart/items/${itemId}`)
+    .send({ quantity: 1 })
+    .expect(401);
+  await request(app)
+    .patch(`/api/v1/cart/items/${itemId}`)
+    .set('Authorization', bearer(tokens[2]))
+    .send({ quantity: 1 })
+    .expect(403);
+
+  const updated = await request(app)
+    .patch(`/api/v1/cart/items/${itemId}`)
+    .set('Authorization', bearer(tokens[0]))
+    .send({ quantity: 99 })
+    .expect(200);
+  assert.equal(updated.body.data.items[0].id, itemId);
+  assert.equal(updated.body.data.items[0].quantity, 99);
+  assert.equal(updated.body.data.itemCount, 99);
+
+  for (const body of [
+    { quantity: 0 },
+    { quantity: 100 },
+    { quantity: -1 },
+    { quantity: 1.5 },
+    { quantity: '1' },
+    { quantity: 1, productId: products[0].id },
+    {},
+  ])
+    await request(app)
+      .patch(`/api/v1/cart/items/${itemId}`)
+      .set('Authorization', bearer(tokens[0]))
+      .send(body)
+      .expect(422);
+  await request(app)
+    .patch(`/api/v1/cart/items/${itemId}`)
+    .set('Authorization', bearer(tokens[1]))
+    .send({ quantity: 1 })
+    .expect(404);
+  await request(app)
+    .patch('/api/v1/cart/items/not-a-uuid')
+    .set('Authorization', bearer(tokens[0]))
+    .send({ quantity: 1 })
+    .expect(404);
+
+  await prisma.inventory.update({
+    where: { productId: products[0].id },
+    data: { quantityOnHand: 0 },
+  });
+  const unavailable = await request(app)
+    .patch(`/api/v1/cart/items/${itemId}`)
+    .set('Authorization', bearer(tokens[0]))
+    .send({ quantity: 1 })
+    .expect(409);
+  assert.equal(unavailable.body.error.code, 'PRODUCT_UNAVAILABLE');
+  assert.equal(unavailable.body.error.details[0].availability, 'OUT_OF_STOCK');
+  await prisma.product.update({
+    where: { id: products[0].id },
+    data: { status: 'ARCHIVED', archivedAt: new Date() },
+  });
+  const hidden = await request(app)
+    .patch(`/api/v1/cart/items/${itemId}`)
+    .set('Authorization', bearer(tokens[0]))
+    .send({ quantity: 1 })
+    .expect(409);
+  assert.equal(hidden.body.error.code, 'PRODUCT_UNAVAILABLE');
+  assert.equal(hidden.body.error.details[0].availability, 'UNAVAILABLE');
+  const persisted = await prisma.cartItem.findUniqueOrThrow({
+    where: { id: itemId },
+  });
+  assert.equal(persisted.quantity, 99);
+});
+
+test('cart item removal and clear return reconciled owned state and support unavailable cleanup', async (t) => {
+  const { app, prisma, tokens, products } = await setup(t);
+  let cart = await request(app)
+    .post('/api/v1/cart/items')
+    .set('Authorization', bearer(tokens[0]))
+    .send({ productId: products[0].id, quantity: 2 })
+    .expect(200);
+  cart = await request(app)
+    .post('/api/v1/cart/items')
+    .set('Authorization', bearer(tokens[0]))
+    .send({ productId: products[3].id, quantity: 3 })
+    .expect(200);
+  const firstId = cart.body.data.items.find(
+    ({ productId }) => productId === products[0].id,
+  ).id;
+  const secondId = cart.body.data.items.find(
+    ({ productId }) => productId === products[3].id,
+  ).id;
+
+  await prisma.product.update({
+    where: { id: products[0].id },
+    data: { status: 'ARCHIVED', archivedAt: new Date() },
+  });
+  const removed = await request(app)
+    .delete(`/api/v1/cart/items/${firstId}`)
+    .set('Authorization', bearer(tokens[0]))
+    .expect(200);
+  assert.equal(removed.body.data.items.length, 1);
+  assert.equal(removed.body.data.items[0].id, secondId);
+  assert.equal(removed.body.data.itemCount, 3);
+  await request(app)
+    .delete(`/api/v1/cart/items/${secondId}`)
+    .set('Authorization', bearer(tokens[1]))
+    .expect(404);
+  await request(app)
+    .delete(`/api/v1/cart/items/${firstId}`)
+    .set('Authorization', bearer(tokens[0]))
+    .expect(404);
+  await request(app)
+    .delete(`/api/v1/cart/items/${secondId}?force=true`)
+    .set('Authorization', bearer(tokens[0]))
+    .expect(422);
+  await request(app)
+    .delete(`/api/v1/cart/items/${secondId}`)
+    .set('Authorization', bearer(tokens[0]))
+    .send({ productId: products[3].id })
+    .expect(422);
+
+  await request(app)
+    .delete('/api/v1/cart/items?force=true')
+    .set('Authorization', bearer(tokens[0]))
+    .expect(422);
+  await request(app)
+    .delete('/api/v1/cart/items')
+    .set('Authorization', bearer(tokens[0]))
+    .send({ all: true })
+    .expect(422);
+  const cleared = await request(app)
+    .delete('/api/v1/cart/items')
+    .set('Authorization', bearer(tokens[0]))
+    .expect(200);
+  assert.deepEqual(cleared.body.data.items, []);
+  assert.equal(cleared.body.data.itemCount, 0);
+  assert.ok(cleared.body.data.id);
+  const repeated = await request(app)
+    .delete('/api/v1/cart/items')
+    .set('Authorization', bearer(tokens[0]))
+    .expect(200);
+  assert.deepEqual(repeated.body, cleared.body);
+});
+
+test('same-owner concurrent cart mutations serialize without stale resurrection or cross-item corruption', async (t) => {
+  const { app, prisma, users, tokens, products } = await setup(t);
+  const added = await request(app)
+    .post('/api/v1/cart/items')
+    .set('Authorization', bearer(tokens[0]))
+    .send({ productId: products[0].id, quantity: 2 })
+    .expect(200);
+  const itemId = added.body.data.items[0].id;
+
+  const updates = await Promise.all(
+    [25, 75].map((quantity) =>
+      request(app)
+        .patch(`/api/v1/cart/items/${itemId}`)
+        .set('Authorization', bearer(tokens[0]))
+        .send({ quantity }),
+    ),
+  );
+  assert.deepEqual(
+    updates.map(({ status }) => status),
+    [200, 200],
+  );
+  const afterUpdates = await prisma.cartItem.findUniqueOrThrow({
+    where: { id: itemId },
+  });
+  assert.ok([25, 75].includes(afterUpdates.quantity));
+
+  const [update, clear] = await Promise.all([
+    request(app)
+      .patch(`/api/v1/cart/items/${itemId}`)
+      .set('Authorization', bearer(tokens[0]))
+      .send({ quantity: 10 }),
+    request(app)
+      .delete('/api/v1/cart/items')
+      .set('Authorization', bearer(tokens[0])),
+  ]);
+  assert.ok([200, 404].includes(update.status));
+  assert.equal(clear.status, 200);
+  assert.equal(
+    await prisma.cartItem.count({
+      where: { cart: { userId: users[0].id } },
+    }),
+    0,
+  );
 });

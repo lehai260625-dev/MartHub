@@ -10,6 +10,12 @@ export const cartAddSchema = z
   })
   .strict();
 
+export const cartQuantityUpdateSchema = z
+  .object({
+    quantity: z.int().min(1).max(MAX_CART_ITEM_QUANTITY),
+  })
+  .strict();
+
 export const cartItemSchema = z
   .object({
     id: z.uuid(),

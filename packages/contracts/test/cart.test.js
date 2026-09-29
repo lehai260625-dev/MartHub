@@ -4,6 +4,7 @@ import test from 'node:test';
 import { z } from 'zod';
 import {
   cartAddSchema,
+  cartQuantityUpdateSchema,
   cartResponseSchema,
   MAX_CART_ITEM_QUANTITY,
 } from '../src/index.js';
@@ -40,6 +41,23 @@ test('cart add contract enforces the approved 1-99 quantity policy strictly', ()
     assert.equal(cartAddSchema.safeParse(input).success, false);
 });
 
+test('cart quantity update contract sets one strict 1-99 quantity', () => {
+  for (const quantity of [1, 99])
+    assert.equal(
+      cartQuantityUpdateSchema.safeParse({ quantity }).success,
+      true,
+    );
+  for (const input of [
+    { quantity: 0 },
+    { quantity: 100 },
+    { quantity: -1 },
+    { quantity: 1.5 },
+    { quantity: '1' },
+    { quantity: 1, productId: product.id },
+    {},
+  ])
+    assert.equal(cartQuantityUpdateSchema.safeParse(input).success, false);
+});
 test('cart response carries current exact-VND product cards and explicit unavailable lines', () => {
   assert.equal(
     cartResponseSchema.safeParse({
@@ -80,9 +98,16 @@ test('cart OpenAPI paths use bearer auth and exact shared contracts', async () =
     spec.components.schemas.CartResponse,
     z.toJSONSchema(cartResponseSchema),
   );
+  assert.deepEqual(
+    spec.components.schemas.CartQuantityUpdate,
+    z.toJSONSchema(cartQuantityUpdateSchema),
+  );
   for (const [path, method] of [
     ['/cart', 'get'],
     ['/cart/items', 'post'],
+    ['/cart/items', 'delete'],
+    ['/cart/items/{itemId}', 'patch'],
+    ['/cart/items/{itemId}', 'delete'],
   ]) {
     const operation = spec.paths[path][method];
     assert.deepEqual(operation.security, [{ BearerAuth: [] }]);
@@ -104,6 +129,19 @@ test('cart OpenAPI paths use bearer auth and exact shared contracts', async () =
     cartAddSchema.safeParse(
       spec.paths['/cart/items'].post.requestBody.content['application/json']
         .example,
+    ).success,
+  );
+  assert.deepEqual(
+    spec.paths['/cart/items/{itemId}'].patch.requestBody.content[
+      'application/json'
+    ].schema,
+    { $ref: '#/components/schemas/CartQuantityUpdate' },
+  );
+  assert.ok(
+    cartQuantityUpdateSchema.safeParse(
+      spec.paths['/cart/items/{itemId}'].patch.requestBody.content[
+        'application/json'
+      ].example,
     ).success,
   );
 });

@@ -168,6 +168,7 @@ Indexes: `(productId, createdAt DESC)`; `(orderId, type)`; unique `(orderId, pro
 - Quantity is an integer from 1 through `MAX_CART_ITEM_QUANTITY = 99`. The cap applies to the resulting per-product cart line after accumulated adds; operations that would exceed it are rejected without clamping. This cart policy is independent of inventory reservation.
 - Cart items do not snapshot price. Every read reconciles current product status, price, and availability.
 - Successful checkout marks the cart checked out and removes its items within the order transaction. A later add creates a new active cart.
+- Customer cart writes serialize on the owning User row. Quantity update, item removal, and clear affect only the active owned cart and commit atomically; clear removes items while preserving the active Cart row.
 
 Indexes: active-cart partial unique index; unique `(cartId, productId)`; `(productId)` for reconciliation and archival checks.
 

@@ -1,13 +1,18 @@
 import {
   cartAddSchema,
+  cartQuantityUpdateSchema,
   cartSchema,
   MAX_CART_ITEM_QUANTITY,
 } from '@marthub/contracts';
 import { ApiError } from '../../middleware/platform.js';
+import {
+  ownedResourceId,
+  requireOwnedResource,
+} from '../auth/authorization.js';
 import { createCatalogService } from '../catalog/service.js';
 
-function parseAdd(input) {
-  const result = cartAddSchema.safeParse(input);
+function parse(schema, input) {
+  const result = schema.safeParse(input);
   if (!result.success)
     throw new ApiError(
       422,
@@ -69,6 +74,22 @@ function quantityLimitExceeded(productId, resultingQuantity) {
   ]);
 }
 
+async function findOwnedActiveItem(tx, auth, itemId, select) {
+  return requireOwnedResource(
+    await tx.cartItem.findFirst({
+      where: {
+        id: ownedResourceId(itemId),
+        cart: {
+          userId: auth.user.id,
+          checkedOutAt: null,
+          archivedAt: null,
+        },
+      },
+      select,
+    }),
+  );
+}
+
 export function createCartService({ prisma }) {
   return {
     async get(auth) {
@@ -76,7 +97,7 @@ export function createCartService({ prisma }) {
     },
 
     async add(auth, input) {
-      const data = parseAdd(input);
+      const data = parse(cartAddSchema, input);
       return prisma.$transaction(async (tx) => {
         await lockUser(tx, auth.user.id);
         const [product] = await createCatalogService({
@@ -132,6 +153,66 @@ export function createCartService({ prisma }) {
             },
           });
 
+        return readCart(tx, auth.user.id);
+      });
+    },
+
+    async update(auth, itemId, input) {
+      const data = parse(cartQuantityUpdateSchema, input);
+      return prisma.$transaction(async (tx) => {
+        await lockUser(tx, auth.user.id);
+        const item = await findOwnedActiveItem(tx, auth, itemId, {
+          id: true,
+          productId: true,
+          quantity: true,
+        });
+        const [product] = await createCatalogService({
+          prisma: tx,
+        }).getProductCardsByIds([item.productId]);
+        if (!product?.availability.canAddToCart)
+          throw new ApiError(
+            409,
+            'PRODUCT_UNAVAILABLE',
+            'Product is currently unavailable.',
+            [
+              {
+                field: 'itemId',
+                itemId: item.id,
+                productId: item.productId,
+                availability: product?.availability.status ?? 'UNAVAILABLE',
+              },
+            ],
+          );
+        if (item.quantity !== data.quantity)
+          await tx.cartItem.update({
+            where: { id: item.id },
+            data: { quantity: data.quantity },
+          });
+        return readCart(tx, auth.user.id);
+      });
+    },
+
+    async remove(auth, itemId) {
+      return prisma.$transaction(async (tx) => {
+        await lockUser(tx, auth.user.id);
+        const item = await findOwnedActiveItem(tx, auth, itemId, { id: true });
+        await tx.cartItem.delete({ where: { id: item.id } });
+        return readCart(tx, auth.user.id);
+      });
+    },
+
+    async clear(auth) {
+      return prisma.$transaction(async (tx) => {
+        await lockUser(tx, auth.user.id);
+        const cart = await tx.cart.findFirst({
+          where: {
+            userId: auth.user.id,
+            checkedOutAt: null,
+            archivedAt: null,
+          },
+          select: { id: true },
+        });
+        if (cart) await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
         return readCart(tx, auth.user.id);
       });
     },

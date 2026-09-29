@@ -3100,6 +3100,199 @@
             "$ref": "#/components/responses/AuthError"
           }
         }
+      },
+      "delete": {
+        "operationId": "cartClear",
+        "description": "Idempotently remove every item from the authenticated Customer active cart and return the reconciled empty cart.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cleared active cart, or the unchanged empty representation.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "413": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "415": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "422": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "500": {
+            "$ref": "#/components/responses/AuthError"
+          }
+        }
+      }
+    },
+    "/cart/items/{itemId}": {
+      "patch": {
+        "operationId": "cartSetItemQuantity",
+        "description": "Set one owned active-cart item quantity to an integer from 1 through 99. Unavailable products return an explicit conflict and are not mutated.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CartQuantityUpdate"
+              },
+              "example": {
+                "quantity": 2
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated reconciled active cart.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "404": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "409": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "413": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "415": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "422": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "500": {
+            "$ref": "#/components/responses/AuthError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "cartRemoveItem",
+        "description": "Remove one owned item from the authenticated Customer active cart, including an unavailable item, and return the reconciled cart.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated reconciled active cart.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "404": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "413": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "415": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "422": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "500": {
+            "$ref": "#/components/responses/AuthError"
+          }
+        }
       }
     }
   },
@@ -7241,6 +7434,19 @@
           }
         },
         "required": ["data"],
+        "additionalProperties": false
+      },
+      "CartQuantityUpdate": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99
+          }
+        },
+        "required": ["quantity"],
         "additionalProperties": false
       }
     },

@@ -221,6 +221,8 @@ The API validates product status and quantity, but checkout remains the final pr
 
 GET does not create a database cart when none exists; it returns a nullable cart ID, an empty item list, and a zero item count. Cart lines are owner-scoped and stably ordered, include their server-owned item/product IDs and quantity, and reconcile the current public product-card projection on every response. An existing line whose product is no longer public returns UNAVAILABLE with a null product projection; a currently out-of-stock public product remains visible as OUT_OF_STOCK. POST increments the existing per-product row or creates it, and returns the complete reconciled cart.
 
+PATCH accepts only { "quantity": 1..99 } and replaces, rather than increments, the owned active-cart item quantity. Zero does not mean removal; clients use DELETE. PATCH returns 409 PRODUCT_UNAVAILABLE without mutation when the current product is out of stock or no longer public, with the reconciled availability in error details. DELETE item remains available for those unavailable lines; foreign, missing, or non-active-cart item IDs return the same 404 NOT_FOUND. DELETE /cart/items clears only the current Customer's active-cart items, preserves the active cart identity, and is idempotent when the cart is absent or already empty. Update, removal, clear, and add serialize per owning user and return the complete reconciled cart.
+
 ### Wishlist and My Items
 
 - `GET /wishlist` - list wishlist items with current product state.
