@@ -59,8 +59,13 @@ test('admin namespace requires a current database ADMIN role and returns only sa
         return [];
       },
     },
-    async $transaction(operations) {
-      return Promise.all(operations);
+    async $queryRaw() {
+      return [{ now: new Date() }];
+    },
+    async $transaction(operation) {
+      return typeof operation === 'function'
+        ? operation(this)
+        : Promise.all(operation);
     },
   };
   const app = createApp({

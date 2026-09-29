@@ -4,6 +4,7 @@ import {
   adminCategoryResponseSchema,
 } from '@marthub/contracts';
 import { ApiError } from '../../middleware/platform.js';
+import { auditContext } from './audit.js';
 import { createAdminCategoryService } from './categories.js';
 
 function noQuery(req) {
@@ -47,7 +48,7 @@ export function createAdminCategoryRouter({ prisma }) {
     noQuery(req);
     res.status(201).json(
       adminCategoryResponseSchema.parse({
-        data: await categories.create(req.body),
+        data: await categories.create(req.body, auditContext(req)),
       }),
     );
   });
@@ -65,7 +66,11 @@ export function createAdminCategoryRouter({ prisma }) {
     noQuery(req);
     res.json(
       adminCategoryResponseSchema.parse({
-        data: await categories.update(req.params.categoryId, req.body),
+        data: await categories.update(
+          req.params.categoryId,
+          req.body,
+          auditContext(req),
+        ),
       }),
     );
   });
@@ -75,7 +80,10 @@ export function createAdminCategoryRouter({ prisma }) {
     noBody(req);
     res.json(
       adminCategoryResponseSchema.parse({
-        data: await categories.archive(req.params.categoryId),
+        data: await categories.archive(
+          req.params.categoryId,
+          auditContext(req),
+        ),
       }),
     );
   });

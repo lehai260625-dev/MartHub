@@ -9,6 +9,7 @@ import {
   adminProductResponseSchema,
 } from '@marthub/contracts';
 import { ApiError } from '../../middleware/platform.js';
+import { auditContext } from './audit.js';
 import { createAdminProductService } from './products.js';
 import { createAdminProductImageService } from './product-images.js';
 import { createAdminPriceService } from './prices.js';
@@ -51,7 +52,11 @@ export function createAdminProductRouter({ prisma, media }) {
     noQuery(req);
     res.status(201).json(
       adminProductResponseSchema.parse({
-        data: await products.create(req.body, req.auth.user.id),
+        data: await products.create(
+          req.body,
+          req.auth.user.id,
+          auditContext(req),
+        ),
       }),
     );
   });
@@ -60,7 +65,7 @@ export function createAdminProductRouter({ prisma, media }) {
     noBody(req);
     res.json(
       adminMediaSignatureResponseSchema.parse({
-        data: await images.signature(req.params.productId),
+        data: await images.signature(req.params.productId, auditContext(req)),
       }),
     );
   });
@@ -68,7 +73,11 @@ export function createAdminProductRouter({ prisma, media }) {
     noQuery(req);
     res.status(201).json(
       adminProductImageResponseSchema.parse({
-        data: await images.register(req.params.productId, req.body),
+        data: await images.register(
+          req.params.productId,
+          req.body,
+          auditContext(req),
+        ),
       }),
     );
   });
@@ -80,6 +89,7 @@ export function createAdminProductRouter({ prisma, media }) {
           req.params.productId,
           req.params.imageId,
           req.body,
+          auditContext(req),
         ),
       }),
     );
@@ -87,7 +97,11 @@ export function createAdminProductRouter({ prisma, media }) {
   router.delete('/:productId/images/:imageId', async (req, res) => {
     noQuery(req);
     noBody(req);
-    const data = await images.remove(req.params.productId, req.params.imageId);
+    const data = await images.remove(
+      req.params.productId,
+      req.params.imageId,
+      auditContext(req),
+    );
     res
       .status(data.status === 'COMPLETED' ? 200 : 202)
       .json(adminMediaCleanupResponseSchema.parse({ data }));
@@ -106,7 +120,12 @@ export function createAdminProductRouter({ prisma, media }) {
       .status(201)
       .json(
         adminProductPriceResponseSchema.parse(
-          await prices.create(req.params.productId, req.body, req.auth.user.id),
+          await prices.create(
+            req.params.productId,
+            req.body,
+            req.auth.user.id,
+            auditContext(req),
+          ),
         ),
       );
   });
@@ -122,7 +141,11 @@ export function createAdminProductRouter({ prisma, media }) {
     noQuery(req);
     res.json(
       adminProductResponseSchema.parse({
-        data: await products.update(req.params.productId, req.body),
+        data: await products.update(
+          req.params.productId,
+          req.body,
+          auditContext(req),
+        ),
       }),
     );
   });
@@ -131,7 +154,7 @@ export function createAdminProductRouter({ prisma, media }) {
     noBody(req);
     res.json(
       adminProductResponseSchema.parse({
-        data: await products.publish(req.params.productId),
+        data: await products.publish(req.params.productId, auditContext(req)),
       }),
     );
   });
@@ -140,7 +163,7 @@ export function createAdminProductRouter({ prisma, media }) {
     noBody(req);
     res.json(
       adminProductResponseSchema.parse({
-        data: await products.archive(req.params.productId),
+        data: await products.archive(req.params.productId, auditContext(req)),
       }),
     );
   });

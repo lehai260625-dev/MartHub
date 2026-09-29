@@ -28,23 +28,23 @@ enum UserStatus {
 }
 
 model User {
-  id                String                @id @default(uuid()) @db.Uuid
-  email             String                @unique
-  passwordHash      String                @map("password_hash")
-  firstName         String                @map("first_name")
-  lastName          String                @map("last_name")
-  phone             String?
-  role              UserRole              @default(CUSTOMER)
-  status            UserStatus            @default(ACTIVE)
-  lastLoginAt       DateTime?             @map("last_login_at") @db.Timestamptz(3)
-  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
-  archivedAt        DateTime?             @map("archived_at") @db.Timestamptz(3)
-  refreshSessions   RefreshSession[]
-  addresses         Address[]
-  createdPrices     ProductPriceHistory[] @relation("PriceCreator")
-  createdPromotions Promotion[]           @relation("PromotionCreator")
-  inventoryMovements InventoryMovement[]  @relation("InventoryMovementActor")
+  id                 String                @id @default(uuid()) @db.Uuid
+  email              String                @unique
+  passwordHash       String                @map("password_hash")
+  firstName          String                @map("first_name")
+  lastName           String                @map("last_name")
+  phone              String?
+  role               UserRole              @default(CUSTOMER)
+  status             UserStatus            @default(ACTIVE)
+  lastLoginAt        DateTime?             @map("last_login_at") @db.Timestamptz(3)
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt         DateTime?             @map("archived_at") @db.Timestamptz(3)
+  refreshSessions    RefreshSession[]
+  addresses          Address[]
+  createdPrices      ProductPriceHistory[] @relation("PriceCreator")
+  createdPromotions  Promotion[]           @relation("PromotionCreator")
+  inventoryMovements InventoryMovement[]   @relation("InventoryMovementActor")
 
   @@index([status, createdAt])
   @@map("users")
@@ -160,28 +160,28 @@ model Category {
 }
 
 model Product {
-  id               String                @id @default(uuid()) @db.Uuid
-  categoryId       String                @map("category_id") @db.Uuid
-  sku              String                @unique
-  name             String
-  slug             String                @unique
-  shortDescription String?               @map("short_description")
-  description      String?
-  brand            String?
-  sellingUnit      String                @map("selling_unit")
-  status           ProductStatus         @default(DRAFT)
-  isFeatured       Boolean               @default(false) @map("is_featured")
-  isNew            Boolean               @default(false) @map("is_new")
-  isPopular        Boolean               @default(false) @map("is_popular")
-  publishedAt      DateTime?             @map("published_at") @db.Timestamptz(3)
-  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
-  archivedAt       DateTime?             @map("archived_at") @db.Timestamptz(3)
-  category         Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  images           ProductImage[]
-  prices           ProductPriceHistory[]
-  inventory        Inventory?
-  mediaCleanups    MediaCleanup[]
+  id                 String                @id @default(uuid()) @db.Uuid
+  categoryId         String                @map("category_id") @db.Uuid
+  sku                String                @unique
+  name               String
+  slug               String                @unique
+  shortDescription   String?               @map("short_description")
+  description        String?
+  brand              String?
+  sellingUnit        String                @map("selling_unit")
+  status             ProductStatus         @default(DRAFT)
+  isFeatured         Boolean               @default(false) @map("is_featured")
+  isNew              Boolean               @default(false) @map("is_new")
+  isPopular          Boolean               @default(false) @map("is_popular")
+  publishedAt        DateTime?             @map("published_at") @db.Timestamptz(3)
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt         DateTime?             @map("archived_at") @db.Timestamptz(3)
+  category           Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  images             ProductImage[]
+  prices             ProductPriceHistory[]
+  inventory          Inventory?
+  mediaCleanups      MediaCleanup[]
   inventoryMovements InventoryMovement[]
 
   @@index([categoryId, status, createdAt])
@@ -219,11 +219,11 @@ model MediaCleanup {
   cloudinaryPublicId String             @unique @map("cloudinary_public_id")
   status             MediaCleanupStatus @default(PENDING)
   attemptCount       Int                @default(0) @map("attempt_count")
-  nextAttemptAt      DateTime?           @map("next_attempt_at") @db.Timestamptz(3)
-  lastErrorCode      String?             @map("last_error_code")
-  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
-  completedAt        DateTime?           @map("completed_at") @db.Timestamptz(3)
+  nextAttemptAt      DateTime?          @map("next_attempt_at") @db.Timestamptz(3)
+  lastErrorCode      String?            @map("last_error_code")
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  completedAt        DateTime?          @map("completed_at") @db.Timestamptz(3)
   product            Product?           @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   promotion          Promotion?         @relation(fields: [promotionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -232,6 +232,7 @@ model MediaCleanup {
   @@index([promotionId, createdAt])
   @@map("media_cleanup")
 }
+
 model ProductPriceHistory {
   id              String    @id @default(uuid()) @db.Uuid
   productId       String    @map("product_id") @db.Uuid
@@ -296,12 +297,26 @@ model Promotion {
   updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
   archivedAt      DateTime?          @map("archived_at") @db.Timestamptz(3)
   createdBy       User?              @relation("PromotionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  mediaCleanups    MediaCleanup[]
+  mediaCleanups   MediaCleanup[]
 
   @@index([placement, status, startsAt, endsAt])
   @@index([status, sortOrder])
   @@map("promotions")
 }
 
+model AdminAuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String   @map("actor_user_id") @db.Uuid
+  action      String   @db.VarChar(64)
+  entityType  String   @map("entity_type") @db.VarChar(32)
+  entityId    String   @map("entity_id") @db.Uuid
+  requestId   String   @map("request_id") @db.VarChar(128)
+  beforeJson  Json     @map("before_json") @db.JsonB
+  afterJson   Json     @map("after_json") @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-
+  @@index([actorUserId, createdAt(sort: Desc)])
+  @@index([entityType, entityId, createdAt(sort: Desc)])
+  @@index([requestId])
+  @@map("admin_audit_logs")
+}

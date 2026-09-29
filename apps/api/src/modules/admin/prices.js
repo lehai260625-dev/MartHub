@@ -5,6 +5,7 @@ import {
   adminProductPriceResponseSchema,
 } from '@marthub/contracts';
 import { ApiError } from '../../middleware/platform.js';
+import { priceAuditSnapshot, writeAdminAudit } from './audit.js';
 
 const actorSelect = {
   id: true,
@@ -108,7 +109,7 @@ export function createAdminPriceService({ prisma }) {
       });
     },
 
-    async create(id, input, actorId) {
+    async create(id, input, actorId, audit) {
       const parsedId = productId(id);
       const data = parse(adminProductPriceCreateSchema, input);
       const startsAt = new Date(data.startsAt);
@@ -155,6 +156,12 @@ export function createAdminPriceService({ prisma }) {
                 createdByUserId: actorId,
               },
               select: priceSelect,
+            });
+            await writeAdminAudit(tx, audit, {
+              action: 'PRICE_CREATE',
+              entityType: 'PRICE',
+              entityId: created.id,
+              after: priceAuditSnapshot(created),
             });
             const now = await databaseNow(tx);
             return adminProductPriceResponseSchema.parse({

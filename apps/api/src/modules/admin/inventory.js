@@ -8,6 +8,11 @@ import {
   adminProductIdSchema,
 } from '@marthub/contracts';
 import { ApiError } from '../../middleware/platform.js';
+import {
+  inventoryAuditSnapshot,
+  inventoryQuantityAuditSnapshot,
+  writeAdminAudit,
+} from './audit.js';
 
 function parse(schema, input) {
   const result = schema.safeParse(input);
@@ -91,6 +96,7 @@ export function createAdminInventoryService({ prisma }) {
           skip: (query.page - 1) * query.perPage,
           take: query.perPage,
           select: {
+            id: true,
             productId: true,
             quantityOnHand: true,
             updatedAt: true,
@@ -140,12 +146,12 @@ export function createAdminInventoryService({ prisma }) {
       });
     },
 
-    async adjust(id, input, actorUserId) {
+    async adjust(id, input, actorUserId, audit) {
       const resolvedId = productId(id);
       const data = parse(adminInventoryAdjustmentSchema, input);
       return prisma.$transaction(async (tx) => {
         const rows = await tx.$queryRaw`
-          SELECT i."product_id" AS "productId", i."quantity_on_hand" AS "quantityOnHand"
+          SELECT i."id", i."product_id" AS "productId", i."quantity_on_hand" AS "quantityOnHand"
           FROM "inventory" i
           WHERE i."product_id" = ${resolvedId}::uuid
           FOR UPDATE OF i
@@ -183,6 +189,7 @@ export function createAdminInventoryService({ prisma }) {
           where: { productId: resolvedId },
           data: { quantityOnHand: quantityAfter },
           select: {
+            id: true,
             productId: true,
             quantityOnHand: true,
             updatedAt: true,
@@ -209,6 +216,24 @@ export function createAdminInventoryService({ prisma }) {
             createdAt: true,
             actor: { select: actorSelect },
           },
+        });
+        await writeAdminAudit(tx, audit, {
+          action: 'INVENTORY_ADJUST',
+          entityType: 'INVENTORY',
+          entityId: inventory.id,
+          before: inventoryQuantityAuditSnapshot({
+            inventoryId: inventory.id,
+            productId: resolvedId,
+            quantityOnHand: current.quantityOnHand,
+          }),
+          after: inventoryAuditSnapshot({
+            inventoryId: inventory.id,
+            productId: resolvedId,
+            adjustment: data.adjustment,
+            quantityBefore: current.quantityOnHand,
+            quantityAfter,
+            reason: data.reason,
+          }),
         });
         return adminInventoryAdjustmentResponseSchema.parse({
           data: {

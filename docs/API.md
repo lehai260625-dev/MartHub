@@ -281,6 +281,12 @@ Historical price is never restored. Supported skip reasons are stable codes such
 
 All endpoints below require `ADMIN`. Responses use `Cache-Control: no-store`, and every mutation is audited.
 
+### Admin mutation audit contract
+
+Each successfully committed Admin command creates exactly one `AdminAuditLog` row using the request correlation ID and database-authoritative Admin actor. Database mutations and the audit insert share one transaction; if either fails, neither commits. Failed or rejected commands and idempotent commands that make no state change do not create generalized audit rows. Media-signature issuance is the exception to the database-mutation description: successful issuance is audited as a sensitive capability grant, while the signature and credential material are never stored.
+
+Actions use this stable command vocabulary: `CATEGORY_CREATE`, `CATEGORY_UPDATE`, `CATEGORY_ARCHIVE`; `PRODUCT_CREATE`, `PRODUCT_UPDATE`, `PRODUCT_PUBLISH`, `PRODUCT_ARCHIVE`; `PRODUCT_MEDIA_SIGNATURE`, `PRODUCT_MEDIA_REGISTER`, `PRODUCT_MEDIA_UPDATE`, `PRODUCT_MEDIA_REMOVE`; `PRICE_CREATE`; `INVENTORY_ADJUST`; `PROMOTION_CREATE`, `PROMOTION_UPDATE`, `PROMOTION_PUBLISH`, `PROMOTION_ARCHIVE`; and `PROMOTION_MEDIA_SIGNATURE`, `PROMOTION_MEDIA_REGISTER`, `PROMOTION_MEDIA_REMOVE`. Category and Product commands target their entity IDs; Product media signature targets Product while registration/update/removal target ProductImage; price creation targets ProductPriceHistory; inventory adjustment targets Inventory; Promotion and its single-media association target Promotion. Product-media removal uses the removed ProductImage snapshot followed by JSON null; Promotion-media removal uses the safe owning-Promotion state before and after association removal. Snapshots use server-side business-field allowlists and never contain raw request bodies, request headers, authentication material, Cloudinary signatures/secrets, or raw provider responses. Domain histories remain authoritative for price intervals, inventory movements, and provider cleanup attempts.
+
 ### Shell authorization
 
 - `GET /admin` - validate the current database-backed Admin role and return the safe identity used to enter the admin shell.

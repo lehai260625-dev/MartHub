@@ -6,6 +6,7 @@ import {
   adminCategoryUpdateSchema,
 } from '@marthub/contracts';
 import { ApiError } from '../../middleware/platform.js';
+import { categoryAuditSnapshot, changed, writeAdminAudit } from './audit.js';
 
 const parentSelect = { id: true, name: true, slug: true };
 const categorySelect = {
@@ -171,7 +172,7 @@ export function createAdminCategoryService({ prisma }) {
       }).data;
     },
 
-    async create(input) {
+    async create(input, audit) {
       const data = parse(adminCategoryCreateSchema, input);
       try {
         return await prisma.$transaction(async (tx) => {
@@ -182,16 +183,23 @@ export function createAdminCategoryService({ prisma }) {
             data,
             select: categorySelect,
           });
-          return adminCategoryResponseSchema.parse({
+          const result = adminCategoryResponseSchema.parse({
             data: toCategory(row),
           }).data;
+          await writeAdminAudit(tx, audit, {
+            action: 'CATEGORY_CREATE',
+            entityType: 'CATEGORY',
+            entityId: result.id,
+            after: categoryAuditSnapshot(result),
+          });
+          return result;
         });
       } catch (error) {
         mapConflict(error);
       }
     },
 
-    async update(id, input) {
+    async update(id, input, audit) {
       const categoryIdValue = categoryId(id);
       const data = parse(adminCategoryUpdateSchema, input);
       return prisma.$transaction(async (tx) => {
@@ -206,13 +214,24 @@ export function createAdminCategoryService({ prisma }) {
           data,
           select: categorySelect,
         });
-        return adminCategoryResponseSchema.parse({
+        const result = adminCategoryResponseSchema.parse({
           data: toCategory(row),
         }).data;
+        const before = categoryAuditSnapshot(toCategory(existing));
+        const after = categoryAuditSnapshot(result);
+        if (changed(before, after))
+          await writeAdminAudit(tx, audit, {
+            action: 'CATEGORY_UPDATE',
+            entityType: 'CATEGORY',
+            entityId: result.id,
+            before,
+            after,
+          });
+        return result;
       });
     },
 
-    async archive(id, now = new Date()) {
+    async archive(id, audit, now = new Date()) {
       const categoryIdValue = categoryId(id);
       return prisma.$transaction(async (tx) => {
         await lockTree(tx);
@@ -237,9 +256,17 @@ export function createAdminCategoryService({ prisma }) {
           data: { status: 'ARCHIVED', archivedAt: now },
           select: categorySelect,
         });
-        return adminCategoryResponseSchema.parse({
+        const result = adminCategoryResponseSchema.parse({
           data: toCategory(row),
         }).data;
+        await writeAdminAudit(tx, audit, {
+          action: 'CATEGORY_ARCHIVE',
+          entityType: 'CATEGORY',
+          entityId: result.id,
+          before: categoryAuditSnapshot(toCategory(existing)),
+          after: categoryAuditSnapshot(result),
+        });
+        return result;
       });
     },
   };

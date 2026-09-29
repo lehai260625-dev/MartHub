@@ -16,6 +16,12 @@ import {
 } from '../../config/media.js';
 import { ApiError } from '../../middleware/platform.js';
 import { attemptMediaCleanup } from '../media/cleanup.js';
+import {
+  changed,
+  mediaSignatureAuditSnapshot,
+  promotionAuditSnapshot,
+  writeAdminAudit,
+} from './audit.js';
 
 const actorSelect = { id: true, email: true, firstName: true, lastName: true };
 const select = {
@@ -199,13 +205,13 @@ export function createAdminPromotionService({ prisma, media }) {
     async get(value) {
       return output(await find(prisma, value));
     },
-    async create(input, actorId) {
+    async create(input, actorId, audit) {
       const data = parse(adminPromotionCreateSchema, input);
       const startsAt = new Date(data.startsAt);
       const endsAt = data.endsAt ? new Date(data.endsAt) : null;
       schedule(startsAt, endsAt);
-      return output(
-        await prisma.promotion.create({
+      return prisma.$transaction(async (tx) => {
+        const row = await tx.promotion.create({
           data: {
             ...data,
             startsAt,
@@ -214,10 +220,18 @@ export function createAdminPromotionService({ prisma, media }) {
             createdByUserId: actorId,
           },
           select,
-        }),
-      );
+        });
+        const result = output(row);
+        await writeAdminAudit(tx, audit, {
+          action: 'PROMOTION_CREATE',
+          entityType: 'PROMOTION',
+          entityId: result.id,
+          after: promotionAuditSnapshot(result),
+        });
+        return result;
+      });
     },
-    async update(value, input) {
+    async update(value, input, audit) {
       const data = parse(adminPromotionUpdateSchema, input);
       return prisma.$transaction(async (tx) => {
         const current = await find(tx, value, true);
@@ -231,7 +245,7 @@ export function createAdminPromotionService({ prisma, media }) {
               : null
             : current.endsAt;
         schedule(startsAt, endsAt);
-        return output(
+        const result = output(
           await tx.promotion.update({
             where: { id: current.id },
             data: {
@@ -242,33 +256,60 @@ export function createAdminPromotionService({ prisma, media }) {
             select,
           }),
         );
+        const before = promotionAuditSnapshot(output(current));
+        const after = promotionAuditSnapshot(result);
+        if (changed(before, after))
+          await writeAdminAudit(tx, audit, {
+            action: 'PROMOTION_UPDATE',
+            entityType: 'PROMOTION',
+            entityId: result.id,
+            before,
+            after,
+          });
+        return result;
       });
     },
-    async publish(value) {
-      const current = await find(prisma, value, true);
-      return output(
-        current.status === 'ACTIVE'
-          ? current
-          : await prisma.promotion.update({
-              where: { id: current.id },
-              data: { status: 'ACTIVE', archivedAt: null },
-              select,
-            }),
-      );
+    async publish(value, audit) {
+      return prisma.$transaction(async (tx) => {
+        const current = await find(tx, value, true);
+        if (current.status === 'ACTIVE') return output(current);
+        const row = await tx.promotion.update({
+          where: { id: current.id },
+          data: { status: 'ACTIVE', archivedAt: null },
+          select,
+        });
+        const result = output(row);
+        await writeAdminAudit(tx, audit, {
+          action: 'PROMOTION_PUBLISH',
+          entityType: 'PROMOTION',
+          entityId: result.id,
+          before: promotionAuditSnapshot(output(current)),
+          after: promotionAuditSnapshot(result),
+        });
+        return result;
+      });
     },
-    async archive(value, now = new Date()) {
-      const current = await find(prisma, value);
-      return output(
-        current.status === 'ARCHIVED'
-          ? current
-          : await prisma.promotion.update({
-              where: { id: current.id },
-              data: { status: 'ARCHIVED', archivedAt: now },
-              select,
-            }),
-      );
+    async archive(value, audit, now = new Date()) {
+      return prisma.$transaction(async (tx) => {
+        const current = await find(tx, value);
+        if (current.status === 'ARCHIVED') return output(current);
+        const row = await tx.promotion.update({
+          where: { id: current.id },
+          data: { status: 'ARCHIVED', archivedAt: now },
+          select,
+        });
+        const result = output(row);
+        await writeAdminAudit(tx, audit, {
+          action: 'PROMOTION_ARCHIVE',
+          entityType: 'PROMOTION',
+          entityId: result.id,
+          before: promotionAuditSnapshot(output(current)),
+          after: promotionAuditSnapshot(result),
+        });
+        return result;
+      });
     },
-    async signature(value, now = new Date()) {
+    async signature(value, audit, now = new Date()) {
       if (!media) noMedia();
       const current = await find(prisma, value, true);
       const publicId = 'marthub/promotions/' + current.id + '/' + randomUUID();
@@ -277,17 +318,29 @@ export function createAdminPromotionService({ prisma, media }) {
         publicId,
         now,
       );
-      await prisma.mediaCleanup.create({
-        data: {
-          ownerType: 'PROMOTION_MEDIA',
-          promotionId: current.id,
-          cloudinaryPublicId: publicId,
-          nextAttemptAt: new Date(contract.expiresAt),
-        },
+      await prisma.$transaction(async (tx) => {
+        await tx.mediaCleanup.create({
+          data: {
+            ownerType: 'PROMOTION_MEDIA',
+            promotionId: current.id,
+            cloudinaryPublicId: publicId,
+            nextAttemptAt: new Date(contract.expiresAt),
+          },
+        });
+        await writeAdminAudit(tx, audit, {
+          action: 'PROMOTION_MEDIA_SIGNATURE',
+          entityType: 'PROMOTION_MEDIA',
+          entityId: current.id,
+          after: mediaSignatureAuditSnapshot(
+            contract,
+            'promotionId',
+            current.id,
+          ),
+        });
       });
       return adminMediaSignatureResponseSchema.parse({ data: contract }).data;
     },
-    async register(value, input, now = new Date()) {
+    async register(value, input, audit, now = new Date()) {
       if (!media) noMedia();
       const current = await find(prisma, value, true);
       const data = parse(adminPromotionMediaRegisterSchema, input);
@@ -376,7 +429,7 @@ export function createAdminPromotionService({ prisma, media }) {
               cloudinaryPublicId: locked.imagePublicId,
             },
           });
-        return tx.promotion.update({
+        const updated = await tx.promotion.update({
           where: { id: current.id },
           data: {
             imagePublicId: data.publicId,
@@ -384,11 +437,22 @@ export function createAdminPromotionService({ prisma, media }) {
           },
           select,
         });
+        const before = promotionAuditSnapshot(output(locked));
+        const after = promotionAuditSnapshot(output(updated));
+        if (changed(before, after))
+          await writeAdminAudit(tx, audit, {
+            action: 'PROMOTION_MEDIA_REGISTER',
+            entityType: 'PROMOTION_MEDIA',
+            entityId: current.id,
+            before,
+            after,
+          });
+        return updated;
       });
       if (oldCleanup) await cleanup(oldCleanup, now);
       return output(row);
     },
-    async removeMedia(value, now = new Date()) {
+    async removeMedia(value, audit, now = new Date()) {
       if (!media) noMedia();
       const promotionId = id(value);
       let task = await prisma.$transaction(async (tx) => {
@@ -409,17 +473,26 @@ export function createAdminPromotionService({ prisma, media }) {
           if (!existing) notFound();
           return existing;
         }
-        await tx.promotion.update({
+        const updated = await tx.promotion.update({
           where: { id: promotionId },
           data: { imagePublicId: null, imageUrl: null },
+          select,
         });
-        return tx.mediaCleanup.create({
+        const task = await tx.mediaCleanup.create({
           data: {
             ownerType: 'PROMOTION_MEDIA',
             promotionId,
             cloudinaryPublicId: current.imagePublicId,
           },
         });
+        await writeAdminAudit(tx, audit, {
+          action: 'PROMOTION_MEDIA_REMOVE',
+          entityType: 'PROMOTION_MEDIA',
+          entityId: promotionId,
+          before: promotionAuditSnapshot(output(current)),
+          after: promotionAuditSnapshot(output(updated)),
+        });
+        return task;
       });
       if (task.status !== 'COMPLETED' && task.attemptCount < 5)
         task = await cleanup(task, now);

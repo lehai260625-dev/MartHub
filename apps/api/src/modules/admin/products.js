@@ -7,6 +7,7 @@ import {
   adminProductUpdateSchema,
 } from '@marthub/contracts';
 import { ApiError } from '../../middleware/platform.js';
+import { changed, productAuditSnapshot, writeAdminAudit } from './audit.js';
 
 function productSelect(now = new Date()) {
   return {
@@ -208,7 +209,7 @@ export function createAdminProductService({ prisma }) {
       });
     },
 
-    async create(input, actorId, now = new Date()) {
+    async create(input, actorId, audit, now = new Date()) {
       const data = parse(adminProductCreateSchema, input);
       const { price, compareAtPrice, ...catalog } = data;
       try {
@@ -231,15 +232,23 @@ export function createAdminProductService({ prisma }) {
             },
             select: productSelect(now),
           });
-          return adminProductResponseSchema.parse({ data: toProduct(row) })
-            .data;
+          const result = adminProductResponseSchema.parse({
+            data: toProduct(row),
+          }).data;
+          await writeAdminAudit(tx, audit, {
+            action: 'PRODUCT_CREATE',
+            entityType: 'PRODUCT',
+            entityId: result.id,
+            after: productAuditSnapshot(result),
+          });
+          return result;
         });
       } catch (error) {
         mapConflict(error);
       }
     },
 
-    async update(id, input) {
+    async update(id, input, audit) {
       const data = parse(adminProductUpdateSchema, input);
       return prisma.$transaction(async (tx) => {
         const priceNow = await databaseNow(tx);
@@ -256,11 +265,24 @@ export function createAdminProductService({ prisma }) {
           data,
           select: productSelect(priceNow),
         });
-        return adminProductResponseSchema.parse({ data: toProduct(row) }).data;
+        const result = adminProductResponseSchema.parse({
+          data: toProduct(row),
+        }).data;
+        const before = productAuditSnapshot(toProduct(existing));
+        const after = productAuditSnapshot(result);
+        if (changed(before, after))
+          await writeAdminAudit(tx, audit, {
+            action: 'PRODUCT_UPDATE',
+            entityType: 'PRODUCT',
+            entityId: result.id,
+            before,
+            after,
+          });
+        return result;
       });
     },
 
-    async publish(id, now = new Date()) {
+    async publish(id, audit, now = new Date()) {
       return prisma.$transaction(async (tx) => {
         const priceNow = await databaseNow(tx);
         const existing = await findProduct(tx, id, priceNow);
@@ -283,11 +305,22 @@ export function createAdminProductService({ prisma }) {
                 },
                 select: productSelect(priceNow),
               });
-        return adminProductResponseSchema.parse({ data: toProduct(row) }).data;
+        const result = adminProductResponseSchema.parse({
+          data: toProduct(row),
+        }).data;
+        if (existing.status !== 'ACTIVE')
+          await writeAdminAudit(tx, audit, {
+            action: 'PRODUCT_PUBLISH',
+            entityType: 'PRODUCT',
+            entityId: result.id,
+            before: productAuditSnapshot(toProduct(existing)),
+            after: productAuditSnapshot(result),
+          });
+        return result;
       });
     },
 
-    async archive(id, now = new Date()) {
+    async archive(id, audit, now = new Date()) {
       return prisma.$transaction(async (tx) => {
         const priceNow = await databaseNow(tx);
         const existing = await findProduct(tx, id, priceNow);
@@ -299,7 +332,18 @@ export function createAdminProductService({ prisma }) {
                 data: { status: 'ARCHIVED', archivedAt: now },
                 select: productSelect(priceNow),
               });
-        return adminProductResponseSchema.parse({ data: toProduct(row) }).data;
+        const result = adminProductResponseSchema.parse({
+          data: toProduct(row),
+        }).data;
+        if (existing.status !== 'ARCHIVED')
+          await writeAdminAudit(tx, audit, {
+            action: 'PRODUCT_ARCHIVE',
+            entityType: 'PRODUCT',
+            entityId: result.id,
+            before: productAuditSnapshot(toProduct(existing)),
+            after: productAuditSnapshot(result),
+          });
+        return result;
       });
     },
   };

@@ -14,6 +14,12 @@ import {
 } from '../../config/media.js';
 import { ApiError } from '../../middleware/platform.js';
 import { attemptMediaCleanup } from '../media/cleanup.js';
+import {
+  changed,
+  mediaSignatureAuditSnapshot,
+  productImageAuditSnapshot,
+  writeAdminAudit,
+} from './audit.js';
 
 const imageSelect = {
   id: true,
@@ -69,7 +75,17 @@ async function product(db, value, { editable = false } = {}) {
   return row;
 }
 function toImage(row) {
-  return adminProductImageResponseSchema.parse({ data: row }).data;
+  return adminProductImageResponseSchema.parse({
+    data: {
+      id: row.id,
+      url: row.url,
+      altText: row.altText,
+      width: row.width,
+      height: row.height,
+      sortOrder: row.sortOrder,
+      isPrimary: row.isPrimary,
+    },
+  }).data;
 }
 function toCleanup(row) {
   return adminMediaCleanupResponseSchema.parse({
@@ -137,25 +153,33 @@ export function createAdminProductImageService({ prisma, media }) {
   }
 
   return {
-    async signature(productIdValue, now = new Date()) {
+    async signature(productIdValue, audit, now = new Date()) {
       if (!media) noMedia();
       const target = await product(prisma, productIdValue, { editable: true });
       const productImageId = randomUUID();
       const publicId = `marthub/products/${target.id}/${randomUUID()}`;
       const contract = media.createUploadContract(target.id, publicId, now);
-      await prisma.mediaCleanup.create({
-        data: {
-          productId: target.id,
-          productImageId,
-          cloudinaryPublicId: publicId,
-          status: 'PENDING',
-          nextAttemptAt: new Date(contract.expiresAt),
-        },
+      await prisma.$transaction(async (tx) => {
+        await tx.mediaCleanup.create({
+          data: {
+            productId: target.id,
+            productImageId,
+            cloudinaryPublicId: publicId,
+            status: 'PENDING',
+            nextAttemptAt: new Date(contract.expiresAt),
+          },
+        });
+        await writeAdminAudit(tx, audit, {
+          action: 'PRODUCT_MEDIA_SIGNATURE',
+          entityType: 'PRODUCT_MEDIA',
+          entityId: target.id,
+          after: mediaSignatureAuditSnapshot(contract, 'productId', target.id),
+        });
       });
       return adminMediaSignatureResponseSchema.parse({ data: contract }).data;
     },
 
-    async register(productIdValue, input, now = new Date()) {
+    async register(productIdValue, input, audit, now = new Date()) {
       if (!media) noMedia();
       const target = await product(prisma, productIdValue, { editable: true });
       const data = parse(adminProductImageRegisterSchema, input);
@@ -242,7 +266,7 @@ export function createAdminProductImageService({ prisma, media }) {
               where: { productId: target.id, isPrimary: true },
               data: { isPrimary: false },
             });
-          return tx.productImage.create({
+          const created = await tx.productImage.create({
             data: {
               productId: target.id,
               cloudinaryPublicId: data.publicId,
@@ -255,6 +279,13 @@ export function createAdminProductImageService({ prisma, media }) {
             },
             select: imageSelect,
           });
+          await writeAdminAudit(tx, audit, {
+            action: 'PRODUCT_MEDIA_REGISTER',
+            entityType: 'PRODUCT_MEDIA',
+            entityId: created.id,
+            after: productImageAuditSnapshot(created, target.id),
+          });
+          return created;
         });
         return toImage(row);
       } catch (error) {
@@ -285,7 +316,7 @@ export function createAdminProductImageService({ prisma, media }) {
       }
     },
 
-    async update(productIdValue, imageIdValue, input) {
+    async update(productIdValue, imageIdValue, input, audit) {
       const target = await product(prisma, productIdValue, { editable: true });
       const imageId = id(adminProductImageIdSchema, imageIdValue);
       const data = parse(adminProductImageUpdateSchema, input);
@@ -350,11 +381,21 @@ export function createAdminProductImageService({ prisma, media }) {
           },
           select: imageSelect,
         });
+        const before = productImageAuditSnapshot(existing, target.id);
+        const after = productImageAuditSnapshot(row, target.id);
+        if (changed(before, after))
+          await writeAdminAudit(tx, audit, {
+            action: 'PRODUCT_MEDIA_UPDATE',
+            entityType: 'PRODUCT_MEDIA',
+            entityId: row.id,
+            before,
+            after,
+          });
         return toImage(row);
       });
     },
 
-    async remove(productIdValue, imageIdValue, now = new Date()) {
+    async remove(productIdValue, imageIdValue, audit, now = new Date()) {
       if (!media) noMedia();
       const target = await product(prisma, productIdValue);
       const imageId = id(adminProductImageIdSchema, imageIdValue);
@@ -387,13 +428,20 @@ export function createAdminProductImageService({ prisma, media }) {
               data: { isPrimary: true },
             });
         }
-        return tx.mediaCleanup.create({
+        const task = await tx.mediaCleanup.create({
           data: {
             productId: target.id,
             productImageId: image.id,
             cloudinaryPublicId: image.cloudinaryPublicId,
           },
         });
+        await writeAdminAudit(tx, audit, {
+          action: 'PRODUCT_MEDIA_REMOVE',
+          entityType: 'PRODUCT_MEDIA',
+          entityId: image.id,
+          before: productImageAuditSnapshot(image, target.id),
+        });
+        return task;
       });
       if (cleanup.status !== 'COMPLETED' && cleanup.attemptCount < 5)
         cleanup = await attemptMediaCleanup({ prisma, media, cleanup, now });

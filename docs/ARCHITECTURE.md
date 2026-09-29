@@ -193,6 +193,8 @@ Required operational surfaces:
 
 Observability must not change customer-visible outcomes. A logging or metrics failure must not partially commit checkout or inventory work.
 
+Generalized Admin audit is part of the mutation consistency boundary rather than best-effort observability: each committed database command and its single allowlisted audit record share one PostgreSQL transaction. Request/security logs cover rejected attempts and operational failures. `MediaCleanup` continues to own post-commit Cloudinary retry outcomes; background cleanup attempts do not create generalized Admin audit events.
+
 ## Approved Decision Log
 
 These entries summarize the approved architecture baseline in lightweight ADR form. They are accepted as of 2026-09-12. If a decision changes, record its replacement and update the affected specialist document before implementation proceeds.

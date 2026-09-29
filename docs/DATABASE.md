@@ -233,15 +233,18 @@ Indexes: `(placement, status, startsAt, endsAt)`; `(status, sortOrder)`; unique 
 
 Fields: `id`, `actorUserId`, `action`, `entityType`, `entityId`, `requestId`, `beforeJson`, `afterJson`, `createdAt`.
 
-- Logs cover admin mutations to users, categories, products, media, prices, inventory, promotions, and orders.
-- Sensitive values such as password hashes, tokens, cookies, and complete secrets are never stored.
-- Audit rows are append-only and do not cascade-delete with the affected entity.
+- One row records each successfully committed sensitive Admin command. It complements domain history such as `ProductPriceHistory`, `InventoryMovement`, and `MediaCleanup`; internal writes within one command do not create extra generalized rows.
+- `action` uses the stable `<RESOURCE>_<ACTION>` command vocabulary and `entityType` identifies the primary business resource. `entityId` is the persisted Category, Product, ProductImage, ProductPriceHistory, Inventory, or Promotion identifier defined by the Admin API command mapping.
+- Database mutations and their audit row commit in the same PostgreSQL transaction. Audit insertion failure rolls back the business mutation. Validation, authorization, conflict, not-found, provider, and transaction failures do not create rows; neither do successful idempotent no-ops with no business-state change.
+- `beforeJson` and `afterJson` are small, explicit server-built allowlisted snapshots. They never serialize raw request bodies, arbitrary ORM/provider objects, headers, cookies, tokens, password material, Cloudinary signatures, API credentials, or unfiltered provider responses. Exact VND integers are serialized as decimal strings.
+- Successful media-signature issuance is audited because it grants a privileged short-lived capability, but its snapshot contains only safe owner, public-ID, format/size policy, and expiry metadata. The signature and all credential material are excluded.
+- Audit rows are append-only, protected against `UPDATE` and `DELETE` at the database boundary, and do not cascade-delete with the affected entity. Actor identity is retained as an immutable UUID even if an out-of-band test or maintenance operation later removes the User row; target resources have no cascading audit relationship.
 
 Indexes: `(actorUserId, createdAt DESC)`; `(entityType, entityId, createdAt DESC)`; `requestId`.
 
 ## Relationship summary
 
-- User `1:N` RefreshSession, Address, Order, InventoryMovement actor records, OrderStatusHistory actor records, and AdminAuditLog actor records.
+- User `1:N` RefreshSession, Address, Order, InventoryMovement actor records, OrderStatusHistory actor records. AdminAuditLog retains immutable actor UUID attribution without a cascading User relationship.
 - User `1:1` active Cart and `1:1` Wishlist.
 - Category `1:N` child Category and Product.
 - Product `1:N` ProductImage, ProductPriceHistory, InventoryMovement, CartItem, WishlistItem, and OrderItem; Product `1:1` Inventory.

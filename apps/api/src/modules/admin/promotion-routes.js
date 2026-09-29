@@ -6,6 +6,7 @@ import {
   adminPromotionResponseSchema,
 } from '@marthub/contracts';
 import { ApiError } from '../../middleware/platform.js';
+import { auditContext } from './audit.js';
 import { createAdminPromotionService } from './promotions.js';
 
 function noQuery(req) {
@@ -42,7 +43,11 @@ export function createAdminPromotionRouter({ prisma, media }) {
     noQuery(req);
     res.status(201).json(
       adminPromotionResponseSchema.parse({
-        data: await promotions.create(req.body, req.auth.user.id),
+        data: await promotions.create(
+          req.body,
+          req.auth.user.id,
+          auditContext(req),
+        ),
       }),
     );
   });
@@ -51,7 +56,10 @@ export function createAdminPromotionRouter({ prisma, media }) {
     noBody(req);
     res.json(
       adminMediaSignatureResponseSchema.parse({
-        data: await promotions.signature(req.params.promotionId),
+        data: await promotions.signature(
+          req.params.promotionId,
+          auditContext(req),
+        ),
       }),
     );
   });
@@ -59,14 +67,21 @@ export function createAdminPromotionRouter({ prisma, media }) {
     noQuery(req);
     res.status(201).json(
       adminPromotionResponseSchema.parse({
-        data: await promotions.register(req.params.promotionId, req.body),
+        data: await promotions.register(
+          req.params.promotionId,
+          req.body,
+          auditContext(req),
+        ),
       }),
     );
   });
   router.delete('/:promotionId/media', async (req, res) => {
     noQuery(req);
     noBody(req);
-    const result = await promotions.removeMedia(req.params.promotionId);
+    const result = await promotions.removeMedia(
+      req.params.promotionId,
+      auditContext(req),
+    );
     res
       .status(result.data.status === 'COMPLETED' ? 200 : 202)
       .json(adminPromotionMediaCleanupResponseSchema.parse(result));
@@ -83,7 +98,11 @@ export function createAdminPromotionRouter({ prisma, media }) {
     noQuery(req);
     res.json(
       adminPromotionResponseSchema.parse({
-        data: await promotions.update(req.params.promotionId, req.body),
+        data: await promotions.update(
+          req.params.promotionId,
+          req.body,
+          auditContext(req),
+        ),
       }),
     );
   });
@@ -92,7 +111,10 @@ export function createAdminPromotionRouter({ prisma, media }) {
     noBody(req);
     res.json(
       adminPromotionResponseSchema.parse({
-        data: await promotions.publish(req.params.promotionId),
+        data: await promotions.publish(
+          req.params.promotionId,
+          auditContext(req),
+        ),
       }),
     );
   });
@@ -101,7 +123,10 @@ export function createAdminPromotionRouter({ prisma, media }) {
     noBody(req);
     res.json(
       adminPromotionResponseSchema.parse({
-        data: await promotions.archive(req.params.promotionId),
+        data: await promotions.archive(
+          req.params.promotionId,
+          auditContext(req),
+        ),
       }),
     );
   });

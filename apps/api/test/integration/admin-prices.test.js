@@ -248,7 +248,10 @@ test('database protects immutable price fields and rolls back a failed actor aud
     }),
     1,
   );
-  await service.create(context.product.id, immediate, context.admin.id);
+  await service.create(context.product.id, immediate, context.admin.id, {
+    actorUserId: context.admin.id,
+    requestId: randomUUID(),
+  });
   for (const endsAt of [null, new Date('2026-09-22T00:00:00.000Z')])
     await assert.rejects(
       context.prisma.productPriceHistory.update({

@@ -5,6 +5,7 @@ import {
   adminInventoryMovementListResponseSchema,
 } from '@marthub/contracts';
 import { ApiError } from '../../middleware/platform.js';
+import { auditContext } from './audit.js';
 import { createAdminInventoryService } from './inventory.js';
 
 function noQuery(req) {
@@ -41,6 +42,7 @@ export function createAdminInventoryRouter({ prisma }) {
             req.params.productId,
             req.body,
             req.auth.user.id,
+            auditContext(req),
           ),
         ),
       );
