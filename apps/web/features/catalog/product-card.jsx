@@ -1,5 +1,6 @@
 ﻿import Link from 'next/link';
 import { formatVnd } from './catalog-query';
+import { AddToCartButton, WishlistButton } from '../shopping/shopping-actions';
 
 export function ProductCard({ product }) {
   const compareAt =
@@ -34,6 +35,7 @@ export function ProductCard({ product }) {
             ))}
           </ul>
         ) : null}
+        <WishlistButton className="absolute right-2 top-2" product={product} />
       </div>
       <div className="product-card-body">
         <div className="min-h-14">
@@ -54,18 +56,7 @@ export function ProductCard({ product }) {
         <p className="min-h-6 text-sm font-medium text-neutral-700">
           {available ? 'In stock' : 'Out of stock'}
         </p>
-        <button
-          aria-label={
-            available
-              ? `Add ${product.name} to cart`
-              : `${product.name} is out of stock`
-          }
-          className="button-primary mt-auto w-full"
-          disabled
-          type="button"
-        >
-          {available ? 'Add to cart' : 'Out of stock'}
-        </button>
+        <AddToCartButton className="mt-auto" product={product} />
       </div>
     </article>
   );

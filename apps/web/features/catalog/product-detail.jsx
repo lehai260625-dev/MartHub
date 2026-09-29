@@ -1,6 +1,7 @@
 ﻿import Link from 'next/link';
 import { formatVnd } from './catalog-query';
 import { ProductGallery } from './product-gallery';
+import { ProductPurchaseActions } from '../shopping/shopping-actions';
 
 export function ProductDetail({ product }) {
   const compareAt =
@@ -67,31 +68,7 @@ export function ProductDetail({ product }) {
           >
             {available ? 'In stock' : 'Out of stock'}
           </p>
-          <div className="product-purchase-panel">
-            <label className="font-semibold" htmlFor="product-quantity">
-              Quantity
-            </label>
-            <input
-              aria-describedby="product-availability"
-              className="form-input mt-1 w-24"
-              defaultValue="1"
-              disabled={!available}
-              id="product-quantity"
-              inputMode="numeric"
-              min="1"
-              name="quantity"
-              step="1"
-              type="number"
-            />
-            <button
-              aria-describedby="product-availability"
-              className="button-primary mt-3 w-full"
-              disabled
-              type="button"
-            >
-              {available ? 'Add to cart' : 'Out of stock'}
-            </button>
-          </div>
+          <ProductPurchaseActions product={product} />
           <dl className="product-facts">
             <div>
               <dt>SKU</dt>

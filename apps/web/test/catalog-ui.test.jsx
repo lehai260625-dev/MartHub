@@ -1,5 +1,5 @@
 ﻿import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   catalogHref,
   formatVnd,
@@ -7,6 +7,11 @@ import {
 } from '../features/catalog/catalog-query';
 import { CatalogListing } from '../features/catalog/catalog-listing';
 import { ProductCard } from '../features/catalog/product-card';
+import { ShoppingTestShell } from './shopping-test-shell';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 const product = {
   id: 'da7a0000-0000-4000-8000-020000000001',
@@ -67,7 +72,9 @@ describe('catalog URL state', () => {
 
 describe('M3.6 catalog components', () => {
   it('renders the stable public ProductCard anatomy and truthful unavailable actions', () => {
-    const { rerender } = render(<ProductCard product={product} />);
+    const { rerender } = render(<ProductCard product={product} />, {
+      wrapper: ShoppingTestShell,
+    });
     const card = screen.getByRole('article');
     expect(within(card).getAllByRole('link')).toHaveLength(2);
     expect(within(card).getAllByRole('link')[0]).toHaveAttribute(
@@ -79,7 +86,7 @@ describe('M3.6 catalog components', () => {
     expect(within(card).getByText('New')).toBeVisible();
     expect(
       within(card).getByRole('button', { name: /add .* to cart/i }),
-    ).toBeDisabled();
+    ).toBeEnabled();
     expect(within(card).queryByText(/rating/i)).not.toBeInTheDocument();
 
     rerender(
@@ -120,6 +127,7 @@ describe('M3.6 catalog components', () => {
         state={{ query: parsed.query, values: parsed.state }}
         title="Search results"
       />,
+      { wrapper: ShoppingTestShell },
     );
     expect(screen.getByLabelText('Minimum')).toHaveValue(100000);
     expect(screen.getByLabelText('In stock')).toBeChecked();

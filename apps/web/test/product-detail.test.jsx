@@ -5,10 +5,15 @@
   waitFor,
   within,
 } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import ProductLoading from '../app/products/[slug]/loading';
 import { ProductDetail } from '../features/catalog/product-detail';
 import { ProductGallery } from '../features/catalog/product-gallery';
+import { ShoppingTestShell } from './shopping-test-shell';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 const images = [
   {
@@ -97,7 +102,9 @@ describe('M3.7 product gallery', () => {
 
 describe('M3.7 product detail', () => {
   it('renders exact public detail fields, price, badges, and in-stock state', () => {
-    render(<ProductDetail product={product} />);
+    render(<ProductDetail product={product} />, {
+      wrapper: ShoppingTestShell,
+    });
     expect(screen.getByRole('heading', { name: product.name })).toBeVisible();
     expect(screen.getByText('MartHub Studio')).toBeVisible();
     expect(screen.getByText(/9\.007\.199\.254\.740\.993/)).toBeVisible();
@@ -106,7 +113,9 @@ describe('M3.7 product detail', () => {
     expect(screen.getByText(product.description)).toBeVisible();
     expect(screen.getByText(product.sku)).toBeVisible();
     expect(screen.getByLabelText('Quantity')).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Add to cart' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /add .* to cart/i }),
+    ).toBeEnabled();
     expect(screen.queryByText(/rating/i)).not.toBeInTheDocument();
   });
 
@@ -119,10 +128,14 @@ describe('M3.7 product detail', () => {
       badges: [],
       availability: { status: 'OUT_OF_STOCK', canAddToCart: false },
     };
-    const detail = render(<ProductDetail product={unavailable} />);
+    const detail = render(<ProductDetail product={unavailable} />, {
+      wrapper: ShoppingTestShell,
+    });
     expect(screen.getByText('Out of stock', { selector: 'p' })).toBeVisible();
     expect(screen.getByLabelText('Quantity')).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Out of stock' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /out of stock/i }),
+    ).toBeDisabled();
     detail.unmount();
 
     render(<ProductLoading />);
