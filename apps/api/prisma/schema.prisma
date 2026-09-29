@@ -45,6 +45,8 @@ model User {
   createdPrices      ProductPriceHistory[] @relation("PriceCreator")
   createdPromotions  Promotion[]           @relation("PromotionCreator")
   inventoryMovements InventoryMovement[]   @relation("InventoryMovementActor")
+  carts              Cart[]
+  wishlist           Wishlist?
 
   @@index([status, createdAt])
   @@map("users")
@@ -183,6 +185,8 @@ model Product {
   inventory          Inventory?
   mediaCleanups      MediaCleanup[]
   inventoryMovements InventoryMovement[]
+  cartItems          CartItem[]
+  wishlistItems      WishlistItem[]
 
   @@index([categoryId, status, createdAt])
   @@index([status, isFeatured])
@@ -278,6 +282,58 @@ model InventoryMovement {
   @@index([productId, createdAt(sort: Desc)])
   @@index([orderId, type])
   @@map("inventory_movements")
+}
+
+model Cart {
+  id           String     @id @default(uuid()) @db.Uuid
+  userId       String     @map("user_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  checkedOutAt DateTime?  @map("checked_out_at") @db.Timestamptz(3)
+  archivedAt   DateTime?  @map("archived_at") @db.Timestamptz(3)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  items        CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  cartId    String   @map("cart_id") @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  quantity  Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([cartId, productId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+model Wishlist {
+  id        String         @id @default(uuid()) @db.Uuid
+  userId    String         @unique @map("user_id") @db.Uuid
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  items     WishlistItem[]
+
+  @@map("wishlists")
+}
+
+model WishlistItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  wishlistId String   @map("wishlist_id") @db.Uuid
+  productId  String   @map("product_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([wishlistId, productId])
+  @@index([productId])
+  @@map("wishlist_items")
 }
 
 model Promotion {

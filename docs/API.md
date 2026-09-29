@@ -217,7 +217,9 @@ Cart mutations return the updated cart representation. An add request is explici
 }
 ```
 
-The API validates product status and quantity, but checkout remains the final price and stock authority. Clients may use optimistic UI and must roll back on error.
+The API validates product status and quantity, but checkout remains the final price and stock authority. `MAX_CART_ITEM_QUANTITY` is 99: request quantities and the resulting accumulated per-product quantity must remain within 1-99; overflow is rejected and never clamped. This limit does not reserve inventory. Clients may use optimistic UI and must roll back on error.
+
+GET does not create a database cart when none exists; it returns a nullable cart ID, an empty item list, and a zero item count. Cart lines are owner-scoped and stably ordered, include their server-owned item/product IDs and quantity, and reconcile the current public product-card projection on every response. An existing line whose product is no longer public returns UNAVAILABLE with a null product projection; a currently out-of-stock public product remains visible as OUT_OF_STOCK. POST increments the existing per-product row or creates it, and returns the complete reconciled cart.
 
 ### Wishlist and My Items
 

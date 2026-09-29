@@ -165,7 +165,7 @@ Indexes: `(productId, createdAt DESC)`; `(orderId, type)`; unique `(orderId, pro
 
 - A user has at most one active cart. A partial unique index enforces `(userId) WHERE checked_out_at IS NULL AND archived_at IS NULL`.
 - `(cartId, productId)` is unique, so adding the same product changes quantity instead of creating a duplicate row.
-- Quantity is a positive integer and is capped by an application constant to protect inventory and payloads.
+- Quantity is an integer from 1 through `MAX_CART_ITEM_QUANTITY = 99`. The cap applies to the resulting per-product cart line after accumulated adds; operations that would exceed it are rejected without clamping. This cart policy is independent of inventory reservation.
 - Cart items do not snapshot price. Every read reconciles current product status, price, and availability.
 - Successful checkout marks the cart checked out and removes its items within the order transaction. A later add creates a new active cart.
 

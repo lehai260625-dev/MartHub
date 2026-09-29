@@ -5,6 +5,7 @@ export * from './admin-category.js';
 export * from './address.js';
 export * from './money.js';
 export * from './catalog.js';
+export * from './cart.js';
 
 export const STORE_NAME = 'MartHub';
 export const API_VERSION = 'v1';

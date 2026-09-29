@@ -1,0 +1,139 @@
+import {
+  cartAddSchema,
+  cartSchema,
+  MAX_CART_ITEM_QUANTITY,
+} from '@marthub/contracts';
+import { ApiError } from '../../middleware/platform.js';
+import { createCatalogService } from '../catalog/service.js';
+
+function parseAdd(input) {
+  const result = cartAddSchema.safeParse(input);
+  if (!result.success)
+    throw new ApiError(
+      422,
+      'VALIDATION_ERROR',
+      'Check the submitted fields.',
+      result.error.issues.map((issue) => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      })),
+    );
+  return result.data;
+}
+
+async function lockUser(tx, userId) {
+  await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${userId}::uuid FOR UPDATE`;
+}
+
+async function readCart(db, userId) {
+  const cart = await db.cart.findFirst({
+    where: { userId, checkedOutAt: null, archivedAt: null },
+    select: {
+      id: true,
+      items: {
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true, productId: true, quantity: true },
+      },
+    },
+  });
+  if (!cart) return cartSchema.parse({ id: null, items: [], itemCount: 0 });
+
+  const cards = await createCatalogService({ prisma: db }).getProductCardsByIds(
+    cart.items.map(({ productId }) => productId),
+  );
+  const byId = new Map(cards.map((product) => [product.id, product]));
+  const items = cart.items.map((item) => {
+    const product = byId.get(item.productId) ?? null;
+    return {
+      ...item,
+      product,
+      availability: product?.availability.status ?? 'UNAVAILABLE',
+    };
+  });
+  return cartSchema.parse({
+    id: cart.id,
+    items,
+    itemCount: items.reduce((total, item) => total + item.quantity, 0),
+  });
+}
+
+function quantityLimitExceeded(productId, resultingQuantity) {
+  return new ApiError(422, 'VALIDATION_ERROR', 'Check the submitted fields.', [
+    {
+      field: 'quantity',
+      message: `Resulting cart item quantity must not exceed ${MAX_CART_ITEM_QUANTITY}.`,
+      productId,
+      maximum: MAX_CART_ITEM_QUANTITY,
+      resultingQuantity,
+    },
+  ]);
+}
+
+export function createCartService({ prisma }) {
+  return {
+    async get(auth) {
+      return readCart(prisma, auth.user.id);
+    },
+
+    async add(auth, input) {
+      const data = parseAdd(input);
+      return prisma.$transaction(async (tx) => {
+        await lockUser(tx, auth.user.id);
+        const [product] = await createCatalogService({
+          prisma: tx,
+        }).getProductCardsByIds([data.productId]);
+        if (!product)
+          throw new ApiError(404, 'NOT_FOUND', 'Resource not found.');
+        if (!product.availability.canAddToCart)
+          throw new ApiError(
+            409,
+            'PRODUCT_UNAVAILABLE',
+            'Product is currently unavailable.',
+            [{ field: 'productId', productId: data.productId }],
+          );
+
+        let cart = await tx.cart.findFirst({
+          where: {
+            userId: auth.user.id,
+            checkedOutAt: null,
+            archivedAt: null,
+          },
+          select: { id: true },
+        });
+        cart ??= await tx.cart.create({
+          data: { userId: auth.user.id },
+          select: { id: true },
+        });
+
+        const existing = await tx.cartItem.findUnique({
+          where: {
+            cartId_productId: {
+              cartId: cart.id,
+              productId: data.productId,
+            },
+          },
+          select: { id: true, quantity: true },
+        });
+        const resultingQuantity = (existing?.quantity ?? 0) + data.quantity;
+        if (resultingQuantity > MAX_CART_ITEM_QUANTITY)
+          throw quantityLimitExceeded(data.productId, resultingQuantity);
+
+        if (existing)
+          await tx.cartItem.update({
+            where: { id: existing.id },
+            data: { quantity: resultingQuantity },
+          });
+        else
+          await tx.cartItem.create({
+            data: {
+              cartId: cart.id,
+              productId: data.productId,
+              quantity: data.quantity,
+            },
+          });
+
+        return readCart(tx, auth.user.id);
+      });
+    },
+  };
+}

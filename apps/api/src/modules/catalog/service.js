@@ -334,6 +334,21 @@ export function createCatalogService({ prisma }) {
         findProductPage(db, now, query, priceWhere, select),
       );
     },
+    async getProductCardsByIds(productIds) {
+      const ids = [...new Set(productIds)];
+      if (!ids.length) return [];
+      return atDatabaseTime(prisma, async (db, _now, priceWhere, select) => {
+        const rows = await db.product.findMany({
+          where: {
+            id: { in: ids },
+            ...publicProduct,
+            prices: { some: priceWhere },
+          },
+          select,
+        });
+        return rows.filter((row) => row.prices.length).map(toCard);
+      });
+    },
     async getProduct(slug) {
       if (!validSlug(slug)) notFound();
       return atDatabaseTime(prisma, async (tx, _now, priceWhere, select) => {

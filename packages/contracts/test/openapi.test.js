@@ -49,6 +49,8 @@ test('OpenAPI exposes only implemented paths and agrees on required response fie
     '/auth/logout-all',
     '/auth/refresh',
     '/auth/register',
+    '/cart',
+    '/cart/items',
     '/categories',
     '/categories/{slug}',
     '/health/live',
