@@ -164,10 +164,15 @@ test('immediate successor closes its predecessor exactly and persists actor audi
 
 test('future successors preserve current price and reject destructive middle insertion', async (t) => {
   const context = await setup(t);
+  const [{ now }] = await context.prisma
+    .$queryRaw`SELECT CURRENT_TIMESTAMP AS now`;
+  const firstStart = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const secondStart = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  const conflictingStart = new Date(now.getTime() + 36 * 60 * 60 * 1000);
   const future = {
     price: '115000',
     compareAtPrice: null,
-    startsAt: '2026-09-25T00:00:00.000Z',
+    startsAt: firstStart.toISOString(),
   };
   await postPrice(context, future).expect(201);
   const current = await request(context.app)
@@ -178,7 +183,7 @@ test('future successors preserve current price and reject destructive middle ins
   await postPrice(context, {
     price: '125000',
     compareAtPrice: '140000',
-    startsAt: '2026-10-01T00:00:00.000Z',
+    startsAt: secondStart.toISOString(),
   }).expect(201);
   const before = await context.prisma.productPriceHistory.findMany({
     where: { productId: context.product.id },
@@ -187,7 +192,7 @@ test('future successors preserve current price and reject destructive middle ins
   const conflict = await postPrice(context, {
     price: '119000',
     compareAtPrice: null,
-    startsAt: '2026-09-28T00:00:00.000Z',
+    startsAt: conflictingStart.toISOString(),
   }).expect(409);
   assert.equal(conflict.body.error.code, 'PRICE_TIMELINE_CONFLICT');
   const after = await context.prisma.productPriceHistory.findMany({
@@ -206,7 +211,7 @@ test('future successors preserve current price and reject destructive middle ins
   );
   assert.deepEqual(
     after.map((row) => row.endsAt?.toISOString() ?? null),
-    ['2026-09-25T00:00:00.000Z', '2026-10-01T00:00:00.000Z', null],
+    [firstStart.toISOString(), secondStart.toISOString(), null],
   );
 });
 

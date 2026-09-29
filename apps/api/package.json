@@ -11,7 +11,7 @@
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "node prisma/seed.js",
-    "test:integration": "node --test test/integration/*.test.js",
+    "test:integration": "node test/run-integration.js",
     "media:cleanup": "node src/modules/media/run-cleanup.js"
   },
   "dependencies": {

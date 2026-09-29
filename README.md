@@ -75,7 +75,7 @@ Install the browser once with `npx playwright install chromium`.
 | `npm run lint`             | JavaScript and React lint checks                                                      |
 | `npm run format:check`     | Implementation formatting                                                             |
 | `npm test`                 | Contracts, API unit/process, and frontend component tests                             |
-| `npm run test:integration` | Real PostgreSQL migration/readiness checks                                            |
+| `npm run test:integration` | Isolated real-PostgreSQL integration suites                                           |
 | `npm run build`            | Shared/API syntax checks and Next.js production build                                 |
 | `npm run test:e2e`         | Production web + API proxy, keyboard, axe, 404 recovery, and 360/768/1024/1440 checks |
 
@@ -100,6 +100,11 @@ npm run db:seed --workspace @marthub/api
 ```
 
 The optional catalog seed adds original MartHub demo categories, products, exact VND prices, stock, and promotions. Repeated runs leave existing rows unchanged. Demo media remains empty until original assets are managed through the approved media flow.
+
+The integration command is destructive only to the configured dedicated test
+database: its database name must contain the word `test`. It runs test files
+sequentially and restores the migrated deterministic seed baseline before each
+file so fixtures cannot leak between suites.
 
 Individual workspace commands also remain available:
 
