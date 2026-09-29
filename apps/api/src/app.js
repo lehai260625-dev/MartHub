@@ -4,6 +4,7 @@ import { createUsersRouter } from './modules/users/routes.js';
 import { createAdminRouter } from './modules/admin/routes.js';
 import { createCatalogRouters } from './modules/catalog/routes.js';
 import { createCartRouter } from './modules/cart/routes.js';
+import { createWishlistRouter } from './modules/wishlist/routes.js';
 import { API_BASE_PATH, API_VERSION, healthSchema } from '@marthub/contracts';
 import {
   ApiError,
@@ -36,6 +37,10 @@ export function createApp({
     router.use('/auth', createAuthRouter({ prisma, config: authConfig }));
     router.use('/users', createUsersRouter({ prisma, config: authConfig }));
     router.use('/cart', createCartRouter({ prisma, config: authConfig }));
+    router.use(
+      '/wishlist',
+      createWishlistRouter({ prisma, config: authConfig }),
+    );
     router.use(
       '/admin',
       createAdminRouter({ prisma, config: authConfig, media: mediaAdapter }),

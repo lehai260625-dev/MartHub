@@ -181,6 +181,7 @@ Indexes: active-cart partial unique index; unique `(cartId, productId)`; `(produ
 - The MVP has one wishlist per user; `Wishlist.userId` is unique.
 - `(wishlistId, productId)` is unique and mutations are idempotent.
 - Archived or unavailable products may remain visible with a clear unavailable state, but cannot be added to cart.
+- Wishlist writes serialize on the owning User row. Adding creates the one wishlist only when needed, membership add is an idempotent no-op when already present, and removal is an idempotent owner-scoped delete.
 
 Indexes: unique `userId`; unique `(wishlistId, productId)`; `(productId)`.
 

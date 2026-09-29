@@ -233,6 +233,8 @@ PATCH accepts only { "quantity": 1..99 } and replaces, rather than increments, t
 
 My Items entries include `lastPurchasedAt`, `purchaseCount`, a recent source `orderId`, current product card data, and availability. Empty purchase history returns an empty `data` list, not an error.
 
+Wishlist endpoints are Customer-only and return `Cache-Control: no-store`. GET returns a nullable wishlist ID, a stable item list, and an item count without creating database state when the wishlist is absent. PUT accepts no request fields, adds only a currently public product, and returns the complete reconciled wishlist; adding the same product again is a successful no-op even if that saved product has since become unavailable. Public out-of-stock products may be saved and return `OUT_OF_STOCK`. Items saved before a product becomes hidden or archived remain removable and return `UNAVAILABLE` with a null product projection, avoiding exposure of non-public catalog data. DELETE accepts no request fields, removes only the authenticated Customer's matching product, returns 204, and remains successful when that membership is already absent.
+
 ### Checkout
 
 - `POST /checkout/quote` - validate the current cart and address choice and return a short-lived server-calculated summary for display; it does not reserve stock.

@@ -63,6 +63,8 @@ test('OpenAPI exposes only implemented paths and agrees on required response fie
     '/users/me/addresses',
     '/users/me/addresses/{addressId}',
     '/users/me/addresses/{addressId}/default',
+    '/wishlist',
+    '/wishlist/items/{productId}',
   ]);
   assert.equal(spec.servers[0].url, '/api/v1');
   assert.deepEqual(spec.paths['/auth/logout-all'].post.security, [
