@@ -2,6 +2,7 @@
 import AxeBuilder from '@axe-core/playwright';
 
 async function auditProduct(page) {
+  await expect(page).toHaveTitle(/\S/u);
   expect(
     await page.evaluate(
       // eslint-disable-next-line no-undef -- This callback runs in the browser page.
@@ -33,15 +34,22 @@ test('guest opens an active product from search and sees a usable missing-image 
   await expect(product.getByText('Sale')).toBeVisible();
   await expect(product.getByText('In stock')).toBeVisible();
   await expect(product.getByLabel('Quantity')).toBeEnabled();
-  await expect(
-    product.getByRole('button', { name: 'Add to cart' }),
-  ).toBeDisabled();
+  const addToCart = product.getByRole('button', {
+    name: 'Add Cove Stoneware Mug to cart',
+    exact: true,
+  });
+  await expect(addToCart).toBeEnabled();
   await expect(
     product.getByRole('img', {
       name: 'No image available for Cove Stoneware Mug',
     }),
   ).toContainText('Image unavailable');
   await auditProduct(page);
+  await addToCart.click();
+  await expect(page).toHaveURL(/\/login\?returnTo=/u);
+  expect(new URL(page.url()).searchParams.get('returnTo')).toBe(
+    '/products/cove-stoneware-mug',
+  );
   await page.goto('/products/harbor-felt-organizer');
   await expect(
     page.getByRole('heading', { name: 'Page not found' }),

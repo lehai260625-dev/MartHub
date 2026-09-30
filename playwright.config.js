@@ -33,6 +33,7 @@ export default defineConfig({
       command:
         'npm start --workspace @marthub/web -- --hostname 127.0.0.1 --port 13000',
       url: 'http://127.0.0.1:13000',
+      env: { WEB_ORIGIN: 'http://127.0.0.1:13000' },
       reuseExistingServer: false,
       timeout: 30_000,
     },

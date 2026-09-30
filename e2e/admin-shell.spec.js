@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { mockAdminSession } from './helpers/admin-session.js';
 
 const admin = {
   id: 'b2ecb79a-b74a-4748-93dc-f2fc02b93b3d',
@@ -14,27 +15,7 @@ const admin = {
 test('authorized admin shell is accessible and responsive', async ({
   page,
 }) => {
-  await page.route('**/api/v1/auth/refresh', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        data: {
-          user: admin,
-          accessToken: 'browser-memory-only-token',
-          expiresIn: 900,
-        },
-      }),
-    }),
-  );
-  await page.route('**/api/v1/admin', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      headers: { 'Cache-Control': 'no-store' },
-      body: JSON.stringify({ data: { user: admin } }),
-    }),
-  );
+  await mockAdminSession(page, admin);
 
   await page.goto('/admin');
 

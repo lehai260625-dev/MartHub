@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { mockAdminSession } from './helpers/admin-session.js';
 
 const admin = {
   id: 'b2ecb79a-b74a-4748-93dc-f2fc02b93b3d',
@@ -32,26 +33,7 @@ test('admin creates, publishes, uploads, and archives a promotion while retainin
   page,
 }) => {
   let promotion = null;
-  await page.route('**/api/v1/auth/refresh', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        data: {
-          user: admin,
-          accessToken: 'browser-memory-only-token',
-          expiresIn: 900,
-        },
-      }),
-    }),
-  );
-  await page.route('**/api/v1/admin', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ data: { user: admin } }),
-    }),
-  );
+  await mockAdminSession(page, admin);
   await page.route('https://api.cloudinary.test/upload', (route) =>
     route.fulfill({
       status: 200,
@@ -74,6 +56,7 @@ test('admin creates, publishes, uploads, and archives a promotion while retainin
     const pathname = new URL(request.url()).pathname;
     const method = request.method();
     if (pathname.endsWith('/media/signature')) {
+      const timestamp = Math.floor(Date.now() / 1000);
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -82,13 +65,13 @@ test('admin creates, publishes, uploads, and archives a promotion while retainin
             cloudName: 'test',
             apiKey: 'public-key',
             uploadUrl: 'https://api.cloudinary.test/upload',
-            expiresAt: '2026-09-21T00:05:00.000Z',
+            expiresAt: new Date((timestamp + 300) * 1000).toISOString(),
             parameters: {
               allowed_formats: 'jpg,png,webp',
               folder: `marthub/promotions/${promotionId}`,
               max_file_size: 4194304,
               public_id: publicId,
-              timestamp: 1789948800,
+              timestamp,
               signature: 'a'.repeat(40),
             },
           },

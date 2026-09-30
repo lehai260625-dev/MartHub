@@ -1,6 +1,8 @@
 ﻿import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+import { mockAdminSession } from './helpers/admin-session.js';
+
 const admin = {
   id: 'b2ecb79a-b74a-4748-93dc-f2fc02b93b3d',
   email: 'admin@example.test',
@@ -77,27 +79,7 @@ test('admin reviews history and schedules a successor price responsively', async
 }) => {
   let history = [basePrice];
   let conflict = false;
-  await page.route('**/api/v1/auth/refresh', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        data: {
-          user: admin,
-          accessToken: 'browser-memory-only-token',
-          expiresIn: 900,
-        },
-      }),
-    }),
-  );
-  await page.route('**/api/v1/admin', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      headers: { 'Cache-Control': 'no-store' },
-      body: JSON.stringify({ data: { user: admin } }),
-    }),
-  );
+  await mockAdminSession(page, admin);
   await page.route('**/api/v1/admin/categories', (route) =>
     route.fulfill({
       status: 200,
@@ -174,7 +156,7 @@ test('admin reviews history and schedules a successor price responsively', async
   await expect(
     page.getByRole('heading', { name: 'Price history' }),
   ).toBeVisible();
-  await expect(page.getByText('Current')).toBeVisible();
+  await expect(page.getByText('Current', { exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'Admin User' })).toBeVisible();
   await page.getByLabel('New price (VND)').fill('359000');
   await page.getByLabel('New compare price (VND)').fill('409000');
