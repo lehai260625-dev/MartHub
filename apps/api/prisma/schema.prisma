@@ -47,6 +47,8 @@ model User {
   inventoryMovements InventoryMovement[]   @relation("InventoryMovementActor")
   carts              Cart[]
   wishlist           Wishlist?
+  orders             Order[]
+  orderStatusChanges OrderStatusHistory[]  @relation("OrderStatusActor")
 
   @@index([status, createdAt])
   @@map("users")
@@ -139,6 +141,15 @@ enum InventoryMovementType {
   ORDER_CANCEL_RESTORE
 }
 
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PACKING
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
 model Category {
   id            String         @id @default(uuid()) @db.Uuid
   parentId      String?        @map("parent_id") @db.Uuid
@@ -187,6 +198,7 @@ model Product {
   inventoryMovements InventoryMovement[]
   cartItems          CartItem[]
   wishlistItems      WishlistItem[]
+  orderItems         OrderItem[]
 
   @@index([categoryId, status, createdAt])
   @@index([status, isFeatured])
@@ -278,6 +290,7 @@ model InventoryMovement {
   createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   product        Product               @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   actor          User?                 @relation("InventoryMovementActor", fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  order          Order?                @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@index([productId, createdAt(sort: Desc)])
   @@index([orderId, type])
@@ -334,6 +347,83 @@ model WishlistItem {
   @@unique([wishlistId, productId])
   @@index([productId])
   @@map("wishlist_items")
+}
+
+model Order {
+  id                 String               @id @default(uuid()) @db.Uuid
+  orderNumber        String               @unique @map("order_number")
+  userId             String               @map("user_id") @db.Uuid
+  status             OrderStatus          @default(PENDING)
+  paymentMethod      String               @default("COD") @map("payment_method") @db.VarChar(3)
+  currency           String               @default("VND") @db.VarChar(3)
+  subtotal           BigInt               @db.BigInt
+  shippingFee        BigInt               @map("shipping_fee") @db.BigInt
+  discountTotal      BigInt               @default(0) @map("discount_total") @db.BigInt
+  total              BigInt               @db.BigInt
+  recipientName      String               @map("recipient_name")
+  recipientPhone     String               @map("recipient_phone")
+  addressLine1       String               @map("address_line_1")
+  addressLine2       String?              @map("address_line_2")
+  ward               String
+  district           String
+  province           String
+  postalCode         String?              @map("postal_code")
+  customerNote       String?              @map("customer_note")
+  cancellationReason String?              @map("cancellation_reason")
+  idempotencyKey     String               @map("idempotency_key") @db.Uuid
+  requestFingerprint String               @map("request_fingerprint")
+  placedAt           DateTime             @default(now()) @map("placed_at") @db.Timestamptz(3)
+  cancelledAt        DateTime?            @map("cancelled_at") @db.Timestamptz(3)
+  deliveredAt        DateTime?            @map("delivered_at") @db.Timestamptz(3)
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  items              OrderItem[]
+  statusHistory      OrderStatusHistory[]
+  inventoryMovements InventoryMovement[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt])
+  @@index([deliveredAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id             String   @id @default(uuid()) @db.Uuid
+  orderId        String   @map("order_id") @db.Uuid
+  productId      String   @map("product_id") @db.Uuid
+  sku            String
+  productName    String   @map("product_name")
+  imageUrl       String?  @map("image_url")
+  sellingUnit    String   @map("selling_unit")
+  unitPrice      BigInt   @map("unit_price") @db.BigInt
+  compareAtPrice BigInt?  @map("compare_at_price") @db.BigInt
+  quantity       Int
+  lineTotal      BigInt   @map("line_total") @db.BigInt
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([orderId, productId])
+  @@index([productId, createdAt(sort: Desc)])
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id          String       @id @default(uuid()) @db.Uuid
+  orderId     String       @map("order_id") @db.Uuid
+  fromStatus  OrderStatus? @map("from_status")
+  toStatus    OrderStatus  @map("to_status")
+  actorUserId String?      @map("actor_user_id") @db.Uuid
+  reason      String?
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actor       User?        @relation("OrderStatusActor", fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([orderId, createdAt])
+  @@index([actorUserId, createdAt(sort: Desc)])
+  @@map("order_status_history")
 }
 
 model Promotion {

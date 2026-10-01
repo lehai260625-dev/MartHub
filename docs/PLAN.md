@@ -12,8 +12,8 @@ This document is the source of truth for implementation order, status, dependenc
 ## Current state
 
 - Approved scope and architecture decisions: complete.
-- Active milestone: M5 Cart and wishlist is complete; M6 has not started.
-- Active implementation task: none; M5.5 is complete and M6.1 has not started.
+- Active milestone: M6 Checkout and COD ordering.
+- Active implementation task: none; M6.1 is complete and M6.2 has not started.
 - Implementation must proceed one task at a time and must not skip dependencies.
 
 ## Detailed documents
@@ -256,7 +256,7 @@ Objective: create exactly one correct COD order per checkout attempt without tru
 
 | Task | Status | Work                                                          | Depends on            | Acceptance criteria                                                                      | Required checks                                   |
 | ---- | ------ | ------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| M6.1 | [ ]    | Add Order, OrderItem, and OrderStatusHistory schema           | M4.5, M4.6, M5.1      | Order/address/item monetary snapshots and idempotency uniqueness are immutable and exact | Migration and constraint tests                    |
+| M6.1 | [x]    | Add Order, OrderItem, and OrderStatusHistory schema           | M4.5, M4.6, M5.1      | Order/address/item monetary snapshots and idempotency uniqueness are immutable and exact | Migration and constraint tests                    |
 | M6.2 | [ ]    | Implement server-priced checkout quote                        | M5.3, M6.1            | Quote derives active products, stock, shipping rule, and totals only from server data    | Pricing unit and integration tests                |
 | M6.3 | [ ]    | Implement transactional idempotent order creation             | M6.2                  | Same key/fingerprint returns one order; reused key with different payload conflicts      | PostgreSQL transaction and parallel-request tests |
 | M6.4 | [ ]    | Implement atomic stock decrement, movement, and cart clearing | M6.3                  | Concurrent checkout cannot oversell and any failure rolls back all effects               | Concurrency, rollback, and reconciliation tests   |
@@ -264,7 +264,7 @@ Objective: create exactly one correct COD order per checkout attempt without tru
 
 Milestone acceptance: duplicate submit, price change, insufficient stock, and concurrent last-item scenarios are correct. Milestone DoD: common DoD plus PostgreSQL transaction evidence and totals reconciliation.
 
-Verification evidence: pending.
+Verification evidence for M6.1 on 2026-10-01: the pre-implementation decision audit found no unresolved owner-level schema decision. DATABASE.md and API.md already define COD/VND, the six order statuses, user-scoped UUID idempotency, request fingerprints, immutable address/money/item snapshots, exact integer-VND totals, one item per product, append-only status history, and the Order foreign key required by order inventory movements. A forward-only migration adds `Order`, `OrderItem`, and `OrderStatusHistory`, the `OrderStatus` enum, documented indexes and foreign keys, fixed COD/VND and exact money/line-total checks, user-scoped idempotency and item uniqueness, immutable order snapshots, append-only items/history, no hard order delete, and the deferred M4.6 `InventoryMovement.orderId` foreign key. Two focused real-PostgreSQL constraint tests pass for exact BIGINT snapshots beyond JavaScript's safe-integer range, order-number and per-user idempotency uniqueness, one product row per order, initial actor/history persistence, inventory movement order ownership and duplicate-effect prevention, total/line checks, snapshot immutability, append-only enforcement, and permitted status-only transition state. The 13-migration chain applies to a fresh PostgreSQL database, repeat deployment reports no pending migrations, and Prisma reports no schema drift. Ten directly affected cart/wishlist, inventory, and catalog schema regression tests pass. Prisma format/validate/client generation, scoped ESLint, touched-file Prettier, JavaScript syntax, and diff checks pass. M6.2 remains not started.
 
 ## M7 Customer orders, My Items, and reorder
 
