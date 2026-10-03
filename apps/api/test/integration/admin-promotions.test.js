@@ -191,6 +191,12 @@ test('promotion API enforces Admin RBAC, strict validation, and creator attribut
 
 test('promotion schedule, status, archive retention, ordering, and homepage visibility remain compatible', async (t) => {
   const c = await setup(t);
+  const [{ now }] = await c.prisma
+    .$queryRaw`SELECT transaction_timestamp() AS now`;
+  const activeWindow = {
+    startsAt: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+    endsAt: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+  };
   const create = async (data) =>
     (
       await auth(
@@ -198,12 +204,18 @@ test('promotion schedule, status, archive retention, ordering, and homepage visi
         c.adminToken,
       ).expect(201)
     ).body.data;
-  const first = await create({ ...valid, title: 'First', sortOrder: 0 });
+  const first = await create({
+    ...valid,
+    ...activeWindow,
+    title: 'First',
+    sortOrder: 0,
+  });
   const second = await create({
     ...valid,
+    ...activeWindow,
     title: 'Second',
     sortOrder: 0,
-    startsAt: '2026-09-22T00:00:00.000Z',
+    startsAt: new Date(now.getTime() - 60 * 60 * 1000).toISOString(),
   });
   await auth(
     request(c.app).post('/api/v1/admin/promotions/' + first.id + '/publish'),
