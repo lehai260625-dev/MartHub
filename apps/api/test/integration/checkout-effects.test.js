@@ -161,6 +161,52 @@ function competingInventoryLocks(prisma) {
   });
 }
 
+function orderedCheckoutAdjustmentLocks(prisma, winner) {
+  let locked, contender;
+  const winnerLocked = new Promise((resolve) => {
+    locked = resolve;
+  });
+  const loserReachedLock = new Promise((resolve) => {
+    contender = resolve;
+  });
+  return (operation) =>
+    new Proxy(prisma, {
+      get(target, key) {
+        if (key !== '$transaction') return target[key];
+        return (callback, options) =>
+          prisma.$transaction(
+            (tx) =>
+              callback(
+                new Proxy(tx, {
+                  get(transaction, field) {
+                    if (field !== '$queryRaw') return transaction[field];
+                    return async (...args) => {
+                      const query = args[0];
+                      const text = Array.isArray(query)
+                        ? query.join('')
+                        : (query.strings?.join('') ?? '');
+                      if (!text.includes('FOR UPDATE OF i'))
+                        return tx.$queryRaw(...args);
+                      if (operation === winner) {
+                        // The real PostgreSQL row lock is held before the contender proceeds.
+                        const rows = await tx.$queryRaw(...args);
+                        locked();
+                        await loserReachedLock;
+                        return rows;
+                      }
+                      await winnerLocked;
+                      contender();
+                      return tx.$queryRaw(...args);
+                    };
+                  },
+                }),
+              ),
+            options,
+          );
+      },
+    });
+}
+
 test('concurrent last-item checkouts cannot oversell and the loser retains its cart with authoritative shortage', async (t) => {
   const f = await setup(t);
   await f.prisma.inventory.update({
@@ -554,39 +600,81 @@ test('cart add waiting behind checkout creates a fresh cart and its new items ar
 });
 
 test('checkout and Admin inventory adjustment share PostgreSQL stock serialization', async (t) => {
-  const f = await setup(t);
-  await f.prisma.inventory.update({
-    where: { productId: f.product.id },
-    data: { quantityOnHand: 1 },
-  });
-  const target = f.makeApp(competingInventoryLocks(f.prisma));
-  const results = await Promise.all([
-    f.send(randomUUID(), f.intent, f.tokens[0], target),
-    request(target)
-      .post(`/api/v1/admin/inventory/${f.product.id}/adjustments`)
-      .set('Authorization', `Bearer ${f.tokens[2]}`)
-      .send({ adjustment: -1, reason: 'Damaged stock removal' }),
-  ]);
-  assert.ok(
-    (results[0].status === 201 && results[1].status === 409) ||
-      (results[0].status === 409 && results[1].status === 200),
-  );
-  const conflict = results.find((res) => res.status === 409);
-  assert.equal(conflict.body.error.code, 'INSUFFICIENT_STOCK');
-  assert.equal(
-    (
-      await f.prisma.inventory.findUnique({
+  for (const winner of ['CHECKOUT', 'ADMIN'])
+    await t.test(`${winner} acquires stock lock first`, async (t) => {
+      const f = await setup(t);
+      await f.prisma.inventory.update({
         where: { productId: f.product.id },
-      })
-    ).quantityOnHand,
-    0,
-  );
-  const movements = await f.prisma.inventoryMovement.findMany({
-    where: { productId: f.product.id },
-  });
-  assert.equal(movements.length, 1);
-  assert.equal(movements[0].quantityDelta, -1);
-  assert.equal(movements[0].quantityAfter, 0);
+        data: { quantityOnHand: 1 },
+      });
+      const coordinate = orderedCheckoutAdjustmentLocks(f.prisma, winner);
+      const checkoutApp = f.makeApp(coordinate('CHECKOUT'));
+      const adminApp = f.makeApp(coordinate('ADMIN'));
+      const results = await Promise.all([
+        f.send(randomUUID(), f.intent, f.tokens[0], checkoutApp),
+        request(adminApp)
+          .post(`/api/v1/admin/inventory/${f.product.id}/adjustments`)
+          .set('Authorization', `Bearer ${f.tokens[2]}`)
+          .send({ adjustment: -1, reason: 'Damaged stock removal' }),
+      ]);
+      assert.deepEqual(
+        results.map((res) => res.status),
+        winner === 'CHECKOUT' ? [201, 409] : [409, 201],
+      );
+      const conflict = results.find((res) => res.status === 409);
+      assert.equal(conflict.body.error.code, 'INSUFFICIENT_STOCK');
+      assert.equal(
+        (
+          await f.prisma.inventory.findUnique({
+            where: { productId: f.product.id },
+          })
+        ).quantityOnHand,
+        0,
+      );
+      const movements = await f.prisma.inventoryMovement.findMany({
+        where: { productId: f.product.id },
+      });
+      assert.equal(movements.length, 1);
+      assert.equal(movements[0].quantityDelta, -1);
+      assert.equal(movements[0].quantityAfter, 0);
+      assert.equal(
+        movements[0].type,
+        winner === 'CHECKOUT' ? 'ORDER_DEBIT' : 'ADJUSTMENT',
+      );
+      assert.equal(
+        movements[0].actorUserId,
+        f.users[winner === 'CHECKOUT' ? 0 : 2].id,
+      );
+      assert.equal(
+        movements[0].orderId,
+        winner === 'CHECKOUT' ? results[0].body.data.id : null,
+      );
+      assert.equal(
+        await f.prisma.order.count({ where: { userId: f.users[0].id } }),
+        winner === 'CHECKOUT' ? 1 : 0,
+      );
+      assert.equal(
+        await f.prisma.orderStatusHistory.count({
+          where: { actorUserId: f.users[0].id },
+        }),
+        winner === 'CHECKOUT' ? 1 : 0,
+      );
+      assert.equal(
+        await f.prisma.cartItem.count({ where: { cartId: f.intent.cartId } }),
+        winner === 'CHECKOUT' ? 0 : 1,
+      );
+      assert.equal(
+        (await f.prisma.cart.findUnique({ where: { id: f.intent.cartId } }))
+          .checkedOutAt !== null,
+        winner === 'CHECKOUT',
+      );
+      assert.equal(
+        await f.prisma.adminAuditLog.count({
+          where: { actorUserId: f.users[2].id, action: 'INVENTORY_ADJUST' },
+        }),
+        winner === 'ADMIN' ? 1 : 0,
+      );
+    });
 });
 
 test('positive but insufficient stock and a later multi-product movement failure preserve all earlier effects', async (t) => {
