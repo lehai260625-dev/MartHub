@@ -102,6 +102,6 @@ test('My Items OpenAPI matches the shared response and documents only implemente
   assert.equal(read.parameters[1].schema.maximum, 50);
   for (const status of ['401', '403', '422', '500'])
     assert.ok(read.responses[status]);
-  assert.equal(spec.paths['/orders/{orderId}/reorder'], undefined);
+  assert.ok(spec.paths['/orders/{orderId}/reorder'].post);
   assert.equal(spec.paths['/users/me/recommendations'], undefined);
 });

@@ -3,10 +3,12 @@ import { customerOrderDetailResponseSchema } from '@marthub/contracts';
 import { ApiError } from '../../middleware/platform.js';
 import { requireAuthentication, requireRoles } from '../auth/authorization.js';
 import { createCustomerOrderService } from './service.js';
+import { createReorderService } from './reorder.js';
 
 export function createCustomerOrderRouter({ prisma, config }) {
   const router = Router();
   const service = createCustomerOrderService({ prisma });
+  const reorder = createReorderService({ prisma });
   router.use((_req, res, next) => {
     res.set('Cache-Control', 'no-store');
     next();
@@ -46,6 +48,17 @@ export function createCustomerOrderRouter({ prisma, config }) {
           req.body ?? {},
         ),
       }),
+    );
+  });
+  router.post('/:orderId/reorder', async (req, res) => {
+    if (Object.keys(req.query).length)
+      throw new ApiError(
+        422,
+        'VALIDATION_ERROR',
+        'This endpoint does not accept query options.',
+      );
+    res.json(
+      await reorder.reorder(req.auth, req.params.orderId, req.body ?? {}),
     );
   });
   return router;

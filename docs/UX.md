@@ -230,7 +230,7 @@ The canonical workspace is `/account/my-items` with two tabs: `Mua lại` and `Y
 
 - My Items aggregates individual products across delivered orders and supports item-by-item Quick Add.
 - Order Detail provides `Mua lại đơn này`, which attempts to add all eligible lines from one historical order.
-- Whole-order reorder returns and displays separate `added` and `skipped` results. Skipped items include a reason such as unavailable, archived, or insufficient stock.
+- Whole-order reorder returns and displays separate `added` and `skipped` results. Reasons are UNAVAILABLE, OUT_OF_STOCK, or QUANTITY_LIMITED as defined in API.md. Positive stock permits the full historical quantity without stock capping; checkout performs the final stock validation.
 - Reorder never silently substitutes a product, quantity, price, or unavailable line.
 
 ### Wishlist

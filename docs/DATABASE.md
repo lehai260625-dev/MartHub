@@ -312,6 +312,8 @@ For M7.3, purchaseCount is SUM(OrderItem.quantity) across owned currently DELIVE
 
 Reordering an order reads its snapshots for identification but adds current products at current prices and availability. It returns per-item `added` and `skipped` outcomes; it never silently substitutes or restore historical prices.
 
+M7.4 preserves each OrderItem.quantity. In one transaction, lock the owning User using the same cart/checkout serialization point, read the owned order's immutable items, resolve current public catalog state, and increment/create eligible per-product active-cart rows. A resulting quantity above 99 skips only that line without mutation or clamping. Positive stock permits adding the full historical quantity even when accumulated quantity exceeds current stock; reorder never reserves/decrements stock or writes inventory movements. Create an active cart only when at least one line can be added; all-skipped preserves the existing cart or its absence. Expected skips do not abort valid lines, but unexpected database failures roll back all reorder writes. Existing active-cart and cart/product unique constraints remain authoritative; no schema change is needed. Exact outcomes and reason codes are owned by API.md.
+
 ## Prisma and migration notes
 
 Prisma schema constraints should be used where supported. PostgreSQL-specific partial unique indexes, check constraints, exclusion constraints, and full-text or trigram indexes belong in reviewed SQL migrations because Prisma may not express all of them directly.

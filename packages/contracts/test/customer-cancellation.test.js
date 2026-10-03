@@ -56,5 +56,5 @@ test('cancellation OpenAPI declares only the approved command, strict reason con
   assert.equal(input.additionalProperties, false);
   assert.deepEqual(Object.keys(input.properties), ['reason']);
   assert.match(input.properties.reason.description, /240/);
-  assert.equal(spec.paths['/orders/{orderId}/reorder'], undefined);
+  assert.ok(spec.paths['/orders/{orderId}/reorder'].post);
 });

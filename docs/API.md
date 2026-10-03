@@ -299,7 +299,9 @@ Reorder is intentionally partial and reports every outcome:
 }
 ```
 
-Historical price is never restored. Supported skip reasons are stable codes such as `PRODUCT_ARCHIVED`, `OUT_OF_STOCK`, and `QUANTITY_LIMITED`.
+Historical price is never restored. M7.4 reorder uses each persisted OrderItem.quantity unchanged and increments the existing active-cart product row. It accepts no body fields or query options, uses Customer authorization/concealed owned-order 404, returns 200 partial results with no-store, and serializes with existing cart/checkout commands on the owning User row. added.quantity is the quantity added by this command, not the accumulated cart quantity; currentUnitPrice is the current exact VND selling price. Every source product appears once in added or skipped, with deterministic source-item createdAt/id ordering within each list.
+
+The complete skipped reason enum is UNAVAILABLE (archived/hidden product, hidden/archived category ancestry, or missing current price), OUT_OF_STOCK (public current-priced product with zero current stock), and QUANTITY_LIMITED (accumulated cart quantity would exceed 99). Validate current catalog availability before the quantity cap. Skip the entire affected line without clamping or changing existing quantity; other valid lines commit. Reorder requires stock greater than zero, but does not limit the resulting cart quantity to stock or reserve inventory; checkout revalidates authoritative stock. An all-skipped command preserves an existing active cart or returns cartId null without creating an empty cart. Successful repeated commands increment again according to cart-add semantics and may subsequently skip at the cap; there is no reorder idempotency-key contract. Expected per-line skips are partial success, while unexpected persistence failures roll back the command's cart writes together.
 
 ## Admin endpoints
 
