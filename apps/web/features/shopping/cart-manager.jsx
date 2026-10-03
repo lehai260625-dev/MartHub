@@ -198,6 +198,9 @@ export function CartManager() {
           </div>
         </dl>
         <p>Prices and stock are checked again during checkout.</p>
+        <Link href="/checkout" className="button-primary mt-4">
+          Continue to checkout
+        </Link>
       </aside>
     </div>
   );

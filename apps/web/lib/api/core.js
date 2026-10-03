@@ -1,4 +1,8 @@
-import { API_BASE_PATH, errorSchema } from '@marthub/contracts';
+import {
+  API_BASE_PATH,
+  errorSchema,
+  idempotencyKeySchema,
+} from '@marthub/contracts';
 
 export class ApiClientError extends Error {
   constructor(
@@ -16,7 +20,15 @@ export function createApiClient({
 } = {}) {
   return async function api(
     path,
-    { method = 'GET', body, token, requestId, signal, schema } = {},
+    {
+      method = 'GET',
+      body,
+      token,
+      requestId,
+      idempotencyKey,
+      signal,
+      schema,
+    } = {},
   ) {
     // Keep all callers inside the Express boundary, including encoded path traversal.
     if (
@@ -45,6 +57,11 @@ export function createApiClient({
     if (body !== undefined) headers.set('Content-Type', 'application/json');
     if (token) headers.set('Authorization', `Bearer ${token}`);
     if (requestId) headers.set('X-Request-Id', requestId);
+    if (idempotencyKey !== undefined)
+      headers.set(
+        'Idempotency-Key',
+        idempotencyKeySchema.parse(idempotencyKey),
+      );
     let response;
     try {
       response = await fetchImpl(

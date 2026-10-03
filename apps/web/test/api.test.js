@@ -44,12 +44,20 @@ test('API helper keeps credentials per request and prevents boundary escapes', a
     body: { quantity: 1 },
     token: 'memory-token',
     requestId: 'req_test',
+    idempotencyKey: '37578ca4-f54b-4d06-9d46-09e0907e5751',
   });
   await api('/item');
   expect(fetchImpl.mock.calls[0][1].headers.get('Authorization')).toBe(
     'Bearer memory-token',
   );
   expect(fetchImpl.mock.calls[1][1].headers.has('Authorization')).toBe(false);
+  expect(fetchImpl.mock.calls[0][1].headers.get('Idempotency-Key')).toBe(
+    '37578ca4-f54b-4d06-9d46-09e0907e5751',
+  );
+  expect(fetchImpl.mock.calls[1][1].headers.has('Idempotency-Key')).toBe(false);
+  await expect(
+    api('/checkout/orders', { method: 'POST', idempotencyKey: 'bad-key' }),
+  ).rejects.toThrow();
   for (const path of [
     'https://evil.example',
     '//evil.example',
