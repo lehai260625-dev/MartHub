@@ -268,7 +268,11 @@ Indexes: `(actorUserId, createdAt DESC)`; `(entityType, entityId, createdAt DESC
 
 ## Checkout transaction and concurrency
 
-Checkout uses a client-generated UUID in the `Idempotency-Key` header. The backend derives a stable request fingerprint from the selected address/input and current cart identity.
+Checkout uses a client-generated UUID in the `Idempotency-Key` header. The canonical client intent is exactly `{ cartId, addressId, customerNote }`, serialized in that stable key order; IDs are canonical lowercase UUIDs. `customerNote` is trimmed, limited to 500 characters after trim, and omitted/null/empty/whitespace-only values canonicalize to null. The fingerprint is a deterministic hash of this canonical JSON. Product IDs/quantities, prices, stock, and address contents are mutable server state and are excluded.
+
+Replay first looks up the committed order by Customer and key and compares only that client-intent fingerprint. Matching intent returns the same persisted order without revalidating cart/address/price/stock, even after those states change. A different cartId/addressId/normalized note conflicts. A completely rolled-back attempt creates no committed idempotency record and may be retried as a new request. The existing Order fingerprint is sufficient; original cart/address IDs need not be separately persisted for comparison with the explicit request intent.
+
+M6.3 creates only Order, immutable OrderItems, and initial OrderStatusHistory atomically, after server validation/repricing of the named active owned cart and address. It does not reserve/decrement inventory, create inventory movements, clear items, or check out the cart. Those effects belong to M6.4, which will extend the same transaction; the complete checkout invariant below is not claimed by M6.3 alone. Concurrent same-key inserts are governed by the PostgreSQL unique Customer/key constraint; a losing insert is rolled back before reading and comparing the winning committed order.
 
 Within one PostgreSQL transaction, the service:
 

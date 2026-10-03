@@ -55,5 +55,8 @@ test('quote OpenAPI matches strict shared schemas and protected no-store respons
   );
   for (const status of ['401', '403', '404', '409', '422'])
     assert.ok(operation.responses[status]);
-  assert.equal(spec.paths['/checkout/orders'], undefined);
+  assert.equal(
+    spec.paths['/checkout/orders'].post.operationId,
+    'checkoutCreateOrder',
+  );
 });

@@ -400,5 +400,5 @@ test('quote sums multiple lines deterministically, ignores future price and hono
     .post('/api/v1/checkout/orders')
     .set('Authorization', `Bearer ${f.tokens[0]}`)
     .send({ addressId: f.addresses[0].id })
-    .expect(404);
+    .expect(422);
 });

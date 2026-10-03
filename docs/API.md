@@ -246,16 +246,19 @@ The response `data` contains `cartId`, `address`, `currency: "VND"`, `items`, `s
 
 Server configuration `SHIPPING_FIXED_FEE_VND` and `SHIPPING_FREE_THRESHOLD_VND` uses non-negative integer-VND strings within BIGINT range, defaulting to the approved 30000 and 500000. Shipping is zero when merchandise subtotal >= threshold, otherwise the fixed fee. Invalid configuration fails startup without exposing its value. Quote timestamps use authoritative database time and expire after five minutes; expiration does not reserve stock or lock prices. Order creation must independently revalidate server prices, stock, and totals, regardless of any earlier quote.
 
-Order creation requires `Idempotency-Key: <uuid>`. The key is scoped to the authenticated user and retained with the order. Repeating the same key and request fingerprint returns the original order response. Reusing the key for a different request returns `400 IDEMPOTENCY_KEY_REUSED`. A quote ID or frontend total is never trusted as price authority.
+Order creation requires `Idempotency-Key: <uuid>`. The key is scoped to the authenticated Customer and retained with the order. The strict body requires `cartId` and `addressId` and optionally accepts nullable `customerNote` (trimmed, maximum 500 characters after trim; omitted/null/empty/whitespace-only becomes null). UUIDs use canonical lowercase form. No other body fields or query options are accepted. Fingerprint fields and replay rules are owned by DATABASE.md. Repeating the same key and canonical client intent returns the same committed order without revalidation of mutable server state. Reusing the key with a different cartId/addressId/normalized note returns `400 IDEMPOTENCY_KEY_REUSED`. A quote ID or frontend total is never trusted as price authority.
+
+New creation returns 201; replay returns 200. Both are Customer-only and no-store and return the safe persisted order summary (ID, order number/status, COD/VND, exact monetary strings, delivery snapshot, normalized customerNote, immutable items, and placedAt), never the internal fingerprint or idempotency key. On the first request, foreign/missing/non-active cart or address IDs return concealed 404; an empty owned cart returns 409 CART_EMPTY, and unavailable/missing-price/insufficient-stock items return 409 PRODUCT_UNAVAILABLE. Missing or malformed keys and invalid body fields return 422. Order, items and initial actor-attributed PENDING history commit together; a failed write rolls all of them back. M6.3 does not reserve/decrement stock or clear/check out the cart; M6.4 owns those effects.
 
 ```json
 {
+  "cartId": "a6620237-185f-47a8-9d94-69fa51d4aa8a",
   "addressId": "ab60db36-8b4d-4a91-bf42-a17ad33db0a2",
   "customerNote": "Giao trong gio hanh chinh"
 }
 ```
 
-The address may alternatively be an inline validated address if the OpenAPI contract explicitly selects that mutually exclusive shape. In either case, the order stores an immutable snapshot. Checkout behavior, inventory locking, and rollback are defined in `docs/DATABASE.md`.
+The implemented contract selects only a saved owned address; inline address fields are rejected. The order stores an immutable snapshot. Checkout behavior, inventory locking, and rollback are defined in `docs/DATABASE.md`.
 
 ### Orders and reorder
 
