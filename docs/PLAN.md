@@ -12,8 +12,8 @@ This document is the source of truth for implementation order, status, dependenc
 ## Current state
 
 - Approved scope and architecture decisions: complete.
-- Active milestone: none; M6 Checkout and COD ordering is complete. M7 has not started.
-- Active implementation task: none.
+- Active milestone: M7 Customer orders, My Items, and reorder; M6 is complete.
+- Active implementation task: none; M7.1 is complete. M7.2 has not started.
 - Implementation must proceed one task at a time and must not skip dependencies.
 
 ## Detailed documents
@@ -290,7 +290,7 @@ Objective: let customers understand order progress, cancel eligible orders, and 
 
 | Task | Status | Work                                             | Depends on | Acceptance criteria                                                                            | Required checks                                     |
 | ---- | ------ | ------------------------------------------------ | ---------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| M7.1 | [ ]    | Implement owned order list and detail            | M6.4       | Customer sees only owned immutable snapshots and complete status history                       | Ownership and integration tests                     |
+| M7.1 | [x]    | Implement owned order list and detail            | M6.4       | Customer sees only owned immutable snapshots and complete status history                       | Ownership and integration tests                     |
 | M7.2 | [ ]    | Implement customer cancellation                  | M7.1       | Only PENDING/CONFIRMED cancel; stock restores exactly once with history                        | Transition, repeated-request, and concurrency tests |
 | M7.3 | [ ]    | Implement delivered-product My Items aggregation | M7.1       | Products deduplicate with last purchase, count, current price, and availability                | Aggregate and archive tests                         |
 | M7.4 | [ ]    | Implement per-order reorder                      | M7.1, M5.3 | Reorder reports `added` and `skipped` without silently losing unavailable items                | Partial-result integration tests                    |
@@ -298,6 +298,12 @@ Objective: let customers understand order progress, cancel eligible orders, and 
 | M7.6 | [ ]    | Implement rule-based recommendations             | M7.3, M3.5 | Delivered-history recommendation is labeled personalized; fallback is honestly labeled popular | Rule, fallback, and contract tests                  |
 
 Milestone acceptance: order history/detail/cancel and both reorder models are understandable and safe. Milestone DoD: common DoD plus full transition-matrix and partial-reorder evidence.
+
+M7.1 decision audit on 2026-10-03: verified completed M6 and the clean repository at commit `80a62ce`, then inspected API/DATABASE/UX rules, existing checkout snapshots/contracts, authorization helpers, and status-history persistence. BLOCKED before implementation: API.md defines the two owned read endpoints but not their exact Customer list query contract (endpoint pagination defaults/limits, status/date filters if supported, default sort/allowed sort values and stable tie breaker), list/detail/history response allowlists (especially history actor identity and reason visibility), or chronological history ordering/tie handling. Generic pagination defaults are explicitly endpoint-specific; database indexes do not define these response policies, and checkout's safe response has no status-history projection. Owner approval is required for those three contract decisions before contracts/OpenAPI or implementation can be written. Existing concealed ownership 404 behavior and immutable snapshot requirements are already defined and need no new decision. No application, schema, migration, contracts, UI, or tests changed; no automated tests were run for this documentation-only decision audit. M7.2 and all later tasks remain NOT STARTED.
+
+M7.1 blocker resolution on 2026-10-03: the owner approved the Customer pagination/status-only filtering, newest/oldest stable sort, safe summary/detail/history fields, actor-identity exclusion, and createdAt/id history ordering. API.md and DATABASE.md recorded the decisions before implementation began. The existing itemCount quantity convention and Prisma offset representation are reused; no new business limits, actor-source fields, or date filters are introduced. M7.1 is IN PROGRESS; M7.2 remains NOT STARTED.
+
+M7.1 completion evidence on 2026-10-03: Customer-only no-store GET /api/v1/orders and GET /api/v1/orders/:orderId use database-authoritative authorization and owner predicates; malformed, missing, and foreign IDs share concealed 404 responses. List implements the approved 1/20 defaults, perPage maximum 50, existing status filter, newest/oldest createdAt/id ordering, strict query allowlist, standard pagination meta, and only the approved summary fields. Detail reuses the safe checkout snapshot projection, adds createdAt and complete createdAt ASC/id ASC history, and selects no actor identity or checkout secret fields. Repeatable-read transactions keep list/count and order/history reads consistent without mutations; no current catalog/address joins are used. Shared strict contracts and OpenAPI document both reads only. Four focused real-PostgreSQL integration tests pass for empty/owned reads, guest/Admin denial, current database role, concealed ownership, no-store, tied timestamps across pagination boundaries, status filters, sorting by timestamp and ID, strict/repeated/overflow/unknown query rejection, exact money beyond JavaScript safe integers, complete tied history, actor redaction, and unchanged snapshots after catalog/price/stock/address/actor changes. Twenty directly affected checkout-order/effects/order-schema PostgreSQL regression checks pass; nine focused contract/OpenAPI checks and nine platform/server/fingerprint checks pass. Scoped ESLint, touched-code/OpenAPI Prettier, JavaScript syntax, contracts build, and diff checks pass. No schema, migration, or frontend change was required by this read-API task; no full suite was rerun. The existing PostgreSQL adapter concurrent-query deprecation warning remains non-failing. M7.1 acceptance and applicable common DoD pass; M7.2 and all later tasks remain NOT STARTED.
 
 Verification evidence: pending.
 

@@ -264,6 +264,11 @@ The implemented contract selects only a saved owned address; inline address fiel
 
 - `GET /orders` - paginate the current customer's orders.
 - `GET /orders/:orderId` - return an owned order, snapshots, and timeline.
+
+M7.1 Customer reads use database-authoritative Customer authorization, concealed 404 for missing/foreign/malformed order IDs, and no-store responses. List accepts only `page` (default 1), `perPage` (default 20, maximum 50), optional `status` from the existing six order statuses, and `sort` (`newest` by default or `oldest`). Date filters are outside M7.1. Newest orders by createdAt DESC then id DESC; oldest orders by createdAt ASC then id ASC. Unknown/repeated/malformed parameters return 422; pagination offsets must fit Prisma's integer skip representation rather than overflowing it.
+
+List exposes only id, orderNumber, status, createdAt, subtotal, shippingFee, discountTotal, total, currency, paymentMethod, and itemCount, with the standard pagination meta. itemCount follows the existing shopping count convention: the sum of persisted item quantities. Detail reuses the safe checkout order snapshot fields (including address, immutable items, customerNote, placedAt, exact VND monetary strings, and current status), adds createdAt and complete statusHistory. History exposes only fromStatus, toStatus, reason, and createdAt, ordered createdAt ASC then persisted history id ASC. Raw actor IDs, emails, internal actor identity, idempotency keys, and request fingerprints are omitted. No safe persisted actor-source/type exists in the current model, so M7.1 adds none. Reads never substitute current catalog/address data for snapshots or mutate the order.
+
 - `POST /orders/:orderId/cancel` - cancel an owned `PENDING` or `CONFIRMED` order with a reason.
 - `POST /orders/:orderId/reorder` - add currently available products from an owned order to the active cart.
 

@@ -220,6 +220,7 @@ Fields: `id`, `orderId`, `fromStatus`, `toStatus`, `actorUserId`, `reason`, `cre
 - History is append-only and records every transition, including initial creation where `fromStatus` is null.
 - `actorUserId` identifies customer or admin actions; system-created events may leave it null with a system reason.
 - The order status update and history insert occur in the same transaction.
+- Customer order detail returns the complete history in createdAt ASC, id ASC order, including tied timestamps deterministically. Only transition statuses, reason, and createdAt are projected; actorUserId and internal actor identity remain private. Order list/detail use persisted monetary/address/item snapshots and never join current catalog or address state for their contents; the Customer read contract is owned by API.md.
 
 Indexes: `(orderId, createdAt)`; `(actorUserId, createdAt DESC)`.
 

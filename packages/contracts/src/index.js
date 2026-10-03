@@ -38,3 +38,4 @@ export * from './admin-price.js';
 export * from './admin-inventory.js';
 
 export * from './admin-promotion.js';
+export * from './orders.js';

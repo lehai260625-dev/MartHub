@@ -6,6 +6,7 @@ import { createCatalogRouters } from './modules/catalog/routes.js';
 import { createCartRouter } from './modules/cart/routes.js';
 import { createWishlistRouter } from './modules/wishlist/routes.js';
 import { createCheckoutRouter } from './modules/checkout/routes.js';
+import { createCustomerOrderRouter } from './modules/orders/routes.js';
 import { readShippingConfig } from './config/env.js';
 import { API_BASE_PATH, API_VERSION, healthSchema } from '@marthub/contracts';
 import {
@@ -40,6 +41,10 @@ export function createApp({
     router.use('/auth', createAuthRouter({ prisma, config: authConfig }));
     router.use('/users', createUsersRouter({ prisma, config: authConfig }));
     router.use('/cart', createCartRouter({ prisma, config: authConfig }));
+    router.use(
+      '/orders',
+      createCustomerOrderRouter({ prisma, config: authConfig }),
+    );
     router.use(
       '/checkout',
       createCheckoutRouter({ prisma, config: authConfig, shippingPolicy }),

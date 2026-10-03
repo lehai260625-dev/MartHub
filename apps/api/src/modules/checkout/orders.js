@@ -92,6 +92,11 @@ function publicOrder(row) {
   });
 }
 
+export {
+  orderSelect as checkoutOrderSelect,
+  publicOrder as projectCheckoutOrder,
+};
+
 function replay(row, fingerprint) {
   if (row.requestFingerprint !== fingerprint)
     throw new ApiError(
