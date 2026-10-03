@@ -54,6 +54,7 @@ if (
       prisma: database.prisma,
       authConfig,
       mediaAdapter,
+      shippingPolicy: config.shippingPolicy,
     }),
     onClose: database.close,
   });

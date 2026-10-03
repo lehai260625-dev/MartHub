@@ -258,7 +258,7 @@ These entries summarize the approved architecture baseline in lightweight ADR fo
 ### AD-009: Fixed shipping policy with configurable free-shipping threshold
 
 **Context:** A realistic total is needed without integrating carrier quotation systems.  
-**Decision:** Compute shipping on the backend from a configured fixed fee and free-shipping threshold.  
+**Decision:** Compute shipping on the backend from a configured fixed fee and free-shipping threshold. The approved policy is 30,000 VND, waived at merchandise subtotal >= 500,000 VND using current selling prices before shipping. All active valid Customer-owned addresses are eligible without geographic restrictions in the MVP. Monetary accounting and quote validity are owned by DATABASE.md; configuration and the quote contract are owned by API.md.
 **Alternatives considered:** Carrier APIs and zone matrices are outside MVP scope; frontend calculation is not authoritative.  
 **Consequences:** The policy remains simple and testable but does not represent live carrier pricing.
 

@@ -54,6 +54,7 @@ test('OpenAPI exposes only implemented paths and agrees on required response fie
     '/cart/items/{itemId}',
     '/categories',
     '/categories/{slug}',
+    '/checkout/quote',
     '/health/live',
     '/health/ready',
     '/homepage',

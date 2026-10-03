@@ -15,6 +15,26 @@ export function validateDatabaseUrl(value) {
   }
 }
 
+export function readShippingConfig(env = process.env) {
+  const amount = (key, fallback) => {
+    const value = env[key] ?? fallback;
+    if (
+      typeof value !== 'string' ||
+      !/^(0|[1-9][0-9]*)$/.test(value) ||
+      value.length > 19 ||
+      BigInt(value) > 9223372036854775807n
+    )
+      throw new Error(
+        `${key} must be a non-negative integer VND amount within BIGINT range.`,
+      );
+    return BigInt(value);
+  };
+  return Object.freeze({
+    fixedFee: amount('SHIPPING_FIXED_FEE_VND', '30000'),
+    freeThreshold: amount('SHIPPING_FREE_THRESHOLD_VND', '500000'),
+  });
+}
+
 export function readEnv(env = process.env) {
   const port = Number(env.PORT || 4000);
   if (!Number.isInteger(port) || port < 1 || port > 65535)
@@ -50,5 +70,6 @@ export function readEnv(env = process.env) {
     nodeEnv,
     origin,
     databaseUrl: validateDatabaseUrl(env.DATABASE_URL),
+    shippingPolicy: readShippingConfig(env),
   };
 }

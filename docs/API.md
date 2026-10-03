@@ -240,6 +240,12 @@ Wishlist endpoints are Customer-only and return `Cache-Control: no-store`. GET r
 - `POST /checkout/quote` - validate the current cart and address choice and return a short-lived server-calculated summary for display; it does not reserve stock.
 - `POST /checkout/orders` - atomically create a COD order from the active cart.
 
+`POST /checkout/quote` is Customer-only, no-store, accepts only `{ "addressId": "<uuid>" }`, and rejects unknown body fields and query options. The address must be active, valid, and owned; foreign/missing/archived addresses use concealed 404 semantics. Every such address is eligible, with no geographic restrictions. Empty carts return `409 CART_EMPTY`; unavailable products, missing current prices, or insufficient stock return `409 PRODUCT_UNAVAILABLE` without altering cart or inventory.
+
+The response `data` contains `cartId`, `address`, `currency: "VND"`, `items`, `subtotal`, `shippingFee`, `discountTotal`, `total`, `quotedAt`, and `expiresAt`. Each item contains `itemId`, `productId`, `sku`, `name`, `quantity`, `stock`, `unitPrice`, nullable `compareAtPrice`, and `lineTotal`. Prices/totals are exact integer strings. Server current selling price determines lineTotal and subtotal; `discountTotal` is always `"0"`, and compareAtPrice is display-only. Amounts exceeding the BIGINT money contract return 422 validation errors.
+
+Server configuration `SHIPPING_FIXED_FEE_VND` and `SHIPPING_FREE_THRESHOLD_VND` uses non-negative integer-VND strings within BIGINT range, defaulting to the approved 30000 and 500000. Shipping is zero when merchandise subtotal >= threshold, otherwise the fixed fee. Invalid configuration fails startup without exposing its value. Quote timestamps use authoritative database time and expire after five minutes; expiration does not reserve stock or lock prices. Order creation must independently revalidate server prices, stock, and totals, regardless of any earlier quote.
+
 Order creation requires `Idempotency-Key: <uuid>`. The key is scoped to the authenticated user and retained with the order. Repeating the same key and request fingerprint returns the original order response. Reusing the key for a different request returns `400 IDEMPOTENCY_KEY_REUSED`. A quote ID or frontend total is never trusted as price authority.
 
 ```json

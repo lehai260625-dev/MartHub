@@ -23,7 +23,11 @@ Line totals and order totals are stored snapshots. The checkout service performs
 
 `subtotal + shippingFee - discountTotal = total`
 
-The MVP does not include tax, coupons, or online payment. Fields such as `discountTotal` remain useful for product markdowns or future-compatible totals, but the backend alone calculates them.
+The MVP does not include tax, coupons, or online payment. For checkout, `unitPrice` is the current ProductPriceHistory selling price, `lineTotal = unitPrice * quantity`, and merchandise `subtotal` is the sum of line totals. `discountTotal = 0` in the MVP; compare-at prices are display references and are never subtracted again. All arithmetic is server-side `BigInt`.
+
+The owner-approved server shipping policy is a fixed 30,000 VND fee, waived when merchandise subtotal is greater than or equal to 500,000 VND, before shipping. API configuration owns the fee and threshold. Every active, valid address owned by the Customer is eligible in the MVP, without geographic restrictions.
+
+Checkout quotes are read-only summaries valid for five minutes from database time. They neither reserve stock nor lock prices; order creation must revalidate prices, stock, and totals. A quote reads cart, address, catalog prices/visibility, and inventory in one consistent PostgreSQL snapshot. It does not create an order or clear the cart.
 
 ### Enumerations
 

@@ -7,6 +7,7 @@ export * from './money.js';
 export * from './catalog.js';
 export * from './cart.js';
 export * from './wishlist.js';
+export * from './checkout.js';
 
 export const STORE_NAME = 'MartHub';
 export const API_VERSION = 'v1';
