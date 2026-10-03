@@ -131,5 +131,5 @@ test('Customer order OpenAPI matches shared response schemas, authorization, pag
     'sort',
     'status',
   ]);
-  assert.equal(spec.paths['/orders/{orderId}/cancel'], undefined);
+  assert.ok(spec.paths['/orders/{orderId}/cancel'].post);
 });

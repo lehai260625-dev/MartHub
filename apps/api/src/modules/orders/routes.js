@@ -31,5 +31,22 @@ export function createCustomerOrderRouter({ prisma, config }) {
       }),
     );
   });
+  router.post('/:orderId/cancel', async (req, res) => {
+    if (Object.keys(req.query).length)
+      throw new ApiError(
+        422,
+        'VALIDATION_ERROR',
+        'This endpoint does not accept query options.',
+      );
+    res.json(
+      customerOrderDetailResponseSchema.parse({
+        data: await service.cancel(
+          req.auth,
+          req.params.orderId,
+          req.body ?? {},
+        ),
+      }),
+    );
+  });
   return router;
 }

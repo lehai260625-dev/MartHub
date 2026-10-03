@@ -3781,6 +3781,86 @@
           }
         }
       }
+    },
+    "/orders/{orderId}/cancel": {
+      "post": {
+        "operationId": "cancelCustomerOrder",
+        "summary": "Cancel an owned PENDING or CONFIRMED order atomically",
+        "description": "Already CANCELLED returns 200 no-op, preserving reason/history/stock even with a different valid reason. Concurrent requests serialize; restore exactly once. Other ineligible states return 409 INVALID_ORDER_TRANSITION. Ownership uses concealed 404.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerOrderCancelInput"
+              },
+              "example": {
+                "reason": "Plans changed"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Owned persisted snapshots",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOrderDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "404": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "409": {
+            "description": "INVALID_ORDER_TRANSITION: order is not eligible for Customer cancellation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "500": {
+            "$ref": "#/components/responses/AuthError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8933,6 +9013,16 @@
         },
         "required": ["data"],
         "additionalProperties": false
+      },
+      "CustomerOrderCancelInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": ["string", "null"],
+            "description": "Optional. Trim before enforcing at most 240 characters; omitted/null/empty/whitespace-only becomes null. Excess length returns 422."
+          }
+        }
       }
     },
     "parameters": {

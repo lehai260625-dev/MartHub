@@ -3,6 +3,20 @@ import { checkoutOrderSchema } from './checkout.js';
 import { moneySchema } from './money.js';
 
 export const customerOrderStatusSchema = checkoutOrderSchema.shape.status;
+export const customerOrderCancelInputSchema = z
+  .object({
+    reason: z
+      .string()
+      .transform((value) => value.trim())
+      .pipe(z.string().max(240))
+      .nullable()
+      .optional()
+      .transform((value) => value || null)
+      .describe(
+        'Optional trimmed reason, at most 240 characters; omitted, null, empty, or whitespace-only becomes null.',
+      ),
+  })
+  .strict();
 const integerQuery = z
   .string()
   .regex(/^[1-9]\d*$/)
