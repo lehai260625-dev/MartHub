@@ -3535,7 +3535,7 @@
       "post": {
         "operationId": "checkoutCreateOrder",
         "summary": "Create or replay an idempotent COD order",
-        "description": "M6.3: atomic order/items/initial history only, without stock decrement or cart clearing. Canonical intent is cartId, addressId, trimmed note (maximum 500 characters, blank/null/omitted becomes null). Replay never revalidates mutable server state; different intent with the same Customer/key returns 400 IDEMPOTENCY_KEY_REUSED.",
+        "description": "Atomically creates COD order/items/initial history, locked stock decrements and ORDER_DEBIT movements, and cart clearing/check-out. Canonical intent is cartId, addressId, trimmed note (maximum 500 characters, blank/null/omitted becomes null). Replay never revalidates mutable server state or repeats stock/cart effects; different intent with the same Customer/key returns 400 IDEMPOTENCY_KEY_REUSED. Short stock returns 409 INSUFFICIENT_STOCK with authoritative quantities; unavailable catalog returns 409 PRODUCT_UNAVAILABLE. User serialization and ascending product-ID inventory locks prevent overselling; any failure rolls back the whole flow.",
         "security": [
           {
             "BearerAuth": []

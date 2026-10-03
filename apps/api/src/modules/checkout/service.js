@@ -9,7 +9,13 @@ import { createAddressService } from '../addresses/service.js';
 import { createCatalogService } from '../catalog/service.js';
 import { calculateQuoteTotals, quoteMoney } from './pricing.js';
 
-export async function readCheckout(tx, auth, input, shippingPolicy) {
+export async function readCheckout(
+  tx,
+  auth,
+  input,
+  shippingPolicy,
+  { checkout = false } = {},
+) {
   const [{ now }] = await tx.$queryRaw`SELECT CURRENT_TIMESTAMP AS now`;
   const address = requireOwnedResource(
     (await createAddressService({ prisma: tx }).list(auth)).find(
@@ -59,12 +65,26 @@ export async function readCheckout(tx, auth, input, shippingPolicy) {
       throw new ApiError(422, 'VALIDATION_ERROR', 'Cart quantity is invalid.');
     const product = byId.get(item.productId);
     const stock = stockById.get(item.productId) ?? 0;
-    if (!product || stock < item.quantity)
+    if (!product || (!checkout && stock < item.quantity))
       throw new ApiError(
         409,
         'PRODUCT_UNAVAILABLE',
         'A cart product is currently unavailable.',
         [{ itemId: item.id, productId: item.productId }],
+      );
+    if (stock < item.quantity)
+      throw new ApiError(
+        409,
+        'INSUFFICIENT_STOCK',
+        'One or more products no longer have the requested quantity.',
+        [
+          {
+            field: 'quantity',
+            productId: item.productId,
+            requested: item.quantity,
+            available: stock,
+          },
+        ],
       );
     return {
       itemId: item.id,

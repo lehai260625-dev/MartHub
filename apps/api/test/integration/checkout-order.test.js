@@ -126,7 +126,7 @@ async function setup(t, price = 499999n) {
   };
 }
 
-test('new order is server-priced, no-store and atomic with items/actor history but no M6.4 stock/cart effects', async (t) => {
+test('new order is server-priced, no-store and atomic with items/actor history, stock movement and cart check-out', async (t) => {
   const f = await setup(t);
   const stock = await f.prisma.inventory.findUnique({
     where: { productId: f.product.id },
@@ -166,21 +166,24 @@ test('new order is server-priced, no-store and atomic with items/actor history b
   assert.equal(history[0].fromStatus, null);
   assert.equal(history[0].toStatus, 'PENDING');
   assert.equal(history[0].actorUserId, f.users[0].id);
-  assert.deepEqual(
-    await f.prisma.inventory.findUnique({ where: { productId: f.product.id } }),
-    stock,
-  );
-  assert.deepEqual(
-    await f.prisma.cart.findUnique({
-      where: { id: cart.id },
-      include: { items: true },
-    }),
-    cart,
-  );
-  assert.equal(
-    await f.prisma.inventoryMovement.count({ where: { orderId: data.id } }),
-    0,
-  );
+  const inventory = await f.prisma.inventory.findUnique({
+    where: { productId: f.product.id },
+  });
+  assert.equal(inventory.quantityOnHand, stock.quantityOnHand - 1);
+  const checkedOut = await f.prisma.cart.findUnique({
+    where: { id: cart.id },
+    include: { items: true },
+  });
+  assert.equal(checkedOut.checkedOutAt.toISOString(), data.placedAt);
+  assert.deepEqual(checkedOut.items, []);
+  const movements = await f.prisma.inventoryMovement.findMany({
+    where: { orderId: data.id },
+  });
+  assert.equal(movements.length, 1);
+  assert.equal(movements[0].type, 'ORDER_DEBIT');
+  assert.equal(movements[0].quantityDelta, -1);
+  assert.equal(movements[0].quantityAfter, inventory.quantityOnHand);
+  assert.equal(movements[0].actorUserId, f.users[0].id);
 });
 
 test('same canonical intent always replays after cart/address/catalog/price/stock changes without revalidation', async (t) => {
@@ -425,7 +428,7 @@ test('parallel identical requests commit one order/items/history and all return 
   );
 });
 
-test('forced parallel insert race rolls back losing intent and returns clear key-reuse conflict', async (t) => {
+test('forced parallel key lookup serializes competing intents and returns clear key-reuse conflict', async (t) => {
   const f = await setup(t);
   let arrivals = 0;
   let release;
@@ -446,9 +449,11 @@ test('forced parallel insert race rolls back losing intent and returns clear key
                     ...tx.order,
                     findUnique: async (args) => {
                       const found = await tx.order.findUnique(args);
-                      assert.equal(found, null);
-                      if (++arrivals === 2) release();
-                      await gate;
+                      if (arrivals < 2) {
+                        assert.equal(found, null);
+                        if (++arrivals === 2) release();
+                        await gate;
+                      }
                       return found;
                     },
                   };

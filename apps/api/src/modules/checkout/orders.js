@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import {
   checkoutOrderInputSchema,
   checkoutOrderSchema,
@@ -6,6 +7,7 @@ import {
 } from '@marthub/contracts';
 import { ApiError } from '../../middleware/platform.js';
 import { readCheckout } from './service.js';
+import { requireOwnedResource } from '../auth/authorization.js';
 
 export function fingerprintIntent(intent) {
   return createHash('sha256')
@@ -132,11 +134,36 @@ export function createOrderService({ prisma, shippingPolicy }) {
               select: orderSelect,
             });
             if (existing) return replay(existing, fingerprint);
+            await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${auth.user.id}::uuid FOR UPDATE`;
+            const committed = await tx.order.findUnique({
+              where,
+              select: orderSelect,
+            });
+            if (committed) return replay(committed, fingerprint);
+            const cart = requireOwnedResource(
+              await tx.cart.findFirst({
+                where: {
+                  id: intent.cartId,
+                  userId: auth.user.id,
+                  checkedOutAt: null,
+                  archivedAt: null,
+                },
+                select: { items: { select: { productId: true } } },
+              }),
+            );
+            const ids = cart.items.map(({ productId }) => productId).sort();
+            if (ids.length)
+              await tx.$queryRaw(Prisma.sql`
+                SELECT i."id" FROM "inventory" i
+                WHERE i."product_id" IN (${Prisma.join(ids.map((id) => Prisma.sql`${id}::uuid`))})
+                ORDER BY i."product_id" ASC FOR UPDATE OF i
+              `);
             const { quote, cards } = await readCheckout(
               tx,
               auth,
               intent,
               shippingPolicy,
+              { checkout: true },
             );
             const byId = new Map(cards.map((card) => [card.id, card]));
             const address = quote.address;
@@ -188,9 +215,34 @@ export function createOrderService({ prisma, shippingPolicy }) {
               },
               select: orderSelect,
             });
+            for (const item of [...quote.items].sort((a, b) =>
+              a.productId.localeCompare(b.productId),
+            )) {
+              const inventory = await tx.inventory.update({
+                where: { productId: item.productId },
+                data: { quantityOnHand: { decrement: item.quantity } },
+                select: { quantityOnHand: true },
+              });
+              await tx.inventoryMovement.create({
+                data: {
+                  productId: item.productId,
+                  type: 'ORDER_DEBIT',
+                  quantityDelta: -item.quantity,
+                  quantityAfter: inventory.quantityOnHand,
+                  orderId: row.id,
+                  actorUserId: auth.user.id,
+                  idempotencyKey,
+                },
+              });
+            }
+            await tx.cartItem.deleteMany({ where: { cartId: intent.cartId } });
+            await tx.cart.update({
+              where: { id: intent.cartId },
+              data: { checkedOutAt: row.placedAt },
+            });
             return { created: true, order: publicOrder(row) };
           },
-          { isolationLevel: 'RepeatableRead' },
+          { isolationLevel: 'ReadCommitted' },
         );
       } catch (error) {
         // A same-key race is resolved only after the losing transaction rolled back.
