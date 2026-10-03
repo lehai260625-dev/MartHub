@@ -68,6 +68,7 @@ test('OpenAPI exposes only implemented paths and agrees on required response fie
     '/users/me/addresses',
     '/users/me/addresses/{addressId}',
     '/users/me/addresses/{addressId}/default',
+    '/users/me/items',
     '/wishlist',
     '/wishlist/items/{productId}',
   ]);

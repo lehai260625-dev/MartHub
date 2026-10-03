@@ -308,6 +308,8 @@ Customer cancellation reason is optional, trimmed, limited to 240 characters aft
 
 My Items derives purchased products from `DELIVERED` orders rather than duplicating them in another table. Results group by product, expose the most recent purchase date and purchase count, and join current product, price, image, and inventory state. Archived or out-of-stock products remain visible as unavailable.
 
+For M7.3, purchaseCount is SUM(OrderItem.quantity) across owned currently DELIVERED orders. Purchase recency comes from the DELIVERED OrderStatusHistory.createdAt transition, not order placement, creation, or the mutable deliveredAt field. Select the most recent source by delivery transition timestamp DESC, then orderId DESC for ties, and retain that source's persisted identification snapshot. Deduplicate and paginate before projecting current public catalog cards; unavailable catalog state never removes historical entries or changes their counts. A repeatable-read transaction keeps aggregation, total product count, snapshots, and current catalog projection consistent. No new snapshot fields, persisted aggregation table, or migration is needed. Exact sort, pagination, and safe response fields are owned by API.md.
+
 Reordering an order reads its snapshots for identification but adds current products at current prices and availability. It returns per-item `added` and `skipped` outcomes; it never silently substitutes or restore historical prices.
 
 ## Prisma and migration notes
