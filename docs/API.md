@@ -268,6 +268,7 @@ The implemented contract selects only a saved owned address; inline address fiel
 
 - `GET /orders` - paginate the current customer's orders.
 - `GET /orders/:orderId` - return an owned order, snapshots, and timeline.
+- `GET /orders/by-number/:orderNumber` - M7.5 canonical order-detail lookup. Customer-only, no-store, no query options. Resolve the exact persisted orderNumber together with authenticated ownership; malformed, missing and foreign numbers share concealed 404. Reuse the unchanged M7.1 immutable detail/complete redacted history response and indexes. Existing orderId endpoints remain unchanged.
 
 M7.1 Customer reads use database-authoritative Customer authorization, concealed 404 for missing/foreign/malformed order IDs, and no-store responses. List accepts only `page` (default 1), `perPage` (default 20, maximum 50), optional `status` from the existing six order statuses, and `sort` (`newest` by default or `oldest`). Date filters are outside M7.1. Newest orders by createdAt DESC then id DESC; oldest orders by createdAt ASC then id ASC. Unknown/repeated/malformed parameters return 422; pagination offsets must fit Prisma's integer skip representation rather than overflowing it.
 

@@ -4006,6 +4006,63 @@
           }
         }
       }
+    },
+    "/orders/by-number/{orderNumber}": {
+      "get": {
+        "operationId": "customerOrderDetailByNumber",
+        "summary": "Read own immutable order detail by canonical order number",
+        "description": "Customer-only/no-store. Exact server-issued MH-UUID number and authenticated ownership. Missing, foreign and malformed numbers return concealed 404. No query options. Reuses unchanged M7.1 immutable snapshots and complete redacted history; no actor identity, fingerprint or idempotency key.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderNumber",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^MH-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owned persisted snapshots",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOrderDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "404": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "422": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "500": {
+            "$ref": "#/components/responses/AuthError"
+          }
+        }
+      }
     }
   },
   "components": {

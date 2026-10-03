@@ -170,6 +170,41 @@ test('Customer order reads enforce database role, ownership, concealed IDs and n
   );
 });
 
+test('canonical number lookup preserves authorization, concealed ownership, strict query and unchanged response', async (t) => {
+  const f = await fixture(t);
+  const own = await f.create();
+  const foreign = await f.create(f.users[1].id);
+  const path = '/orders/by-number/' + own.orderNumber;
+  const response = await f.get(path).expect(200);
+  assert.equal(response.headers['cache-control'], 'no-store');
+  assert.deepEqual(
+    response.body,
+    (await f.get('/orders/' + own.id).expect(200)).body,
+  );
+  await request(f.app)
+    .get('/api/v1' + path)
+    .expect(401);
+  await f.get(path, f.tokens[2]).expect(403);
+  for (const number of [
+    foreign.orderNumber,
+    'MH-' + randomUUID(),
+    'garbage',
+    own.id,
+    'MH-%20',
+    own.orderNumber.toLowerCase(),
+  ]) {
+    const denied = await f.get('/orders/by-number/' + number).expect(404);
+    assert.equal(denied.body.error.code, 'NOT_FOUND');
+    assert.equal(denied.body.error.message, 'Resource not found.');
+  }
+  await f.get(path + '?include=actor').expect(422);
+  await f.prisma.user.update({
+    where: { id: f.users[0].id },
+    data: { role: 'ADMIN' },
+  });
+  await f.get(path).expect(403);
+});
+
 test('list uses approved defaults, status filter and both stable sort directions across page boundaries', async (t) => {
   const f = await fixture(t);
   const tied = new Date('2026-01-01T00:00:00.000Z');
@@ -366,6 +401,10 @@ test('detail uses immutable exact snapshots and complete deterministic redacted 
   });
   assert.deepEqual(
     (await f.get('/orders/' + order.id).expect(200)).body,
+    original,
+  );
+  assert.deepEqual(
+    (await f.get('/orders/by-number/' + order.orderNumber).expect(200)).body,
     original,
   );
   assert.equal(original.data.items[0].productName, 'Immutable product');

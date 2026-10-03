@@ -101,7 +101,11 @@ test('Customer order OpenAPI matches shared response schemas, authorization, pag
     spec.components.schemas.CustomerOrderDetailResponse,
     z.toJSONSchema(customerOrderDetailResponseSchema),
   );
-  for (const path of ['/orders', '/orders/{orderId}']) {
+  for (const path of [
+    '/orders',
+    '/orders/{orderId}',
+    '/orders/by-number/{orderNumber}',
+  ]) {
     assert.deepEqual(Object.keys(spec.paths[path]), ['get']);
     assert.deepEqual(spec.paths[path].get.security, [{ BearerAuth: [] }]);
     assert.equal(
@@ -132,4 +136,22 @@ test('Customer order OpenAPI matches shared response schemas, authorization, pag
     'status',
   ]);
   assert.ok(spec.paths['/orders/{orderId}/cancel'].post);
+  const lookup = spec.paths['/orders/by-number/{orderNumber}'].get;
+  assert.deepEqual(
+    lookup.responses[200],
+    spec.paths['/orders/{orderId}'].get.responses[200],
+  );
+  assert.equal(lookup.parameters.length, 1);
+  assert.equal(lookup.parameters[0].name, 'orderNumber');
+  assert.equal(lookup.parameters[0].in, 'path');
+  assert.equal(lookup.parameters[0].required, true);
+  assert.ok(
+    new RegExp(lookup.parameters[0].schema.pattern).test(
+      'MH-8ae0b1ba-2414-4d55-a0ad-7cc6ab8a4f96',
+    ),
+  );
+  assert.equal(
+    new RegExp(lookup.parameters[0].schema.pattern).test('garbage'),
+    false,
+  );
 });

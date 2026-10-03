@@ -307,6 +307,9 @@
 .wishlist-grid > li {
   min-width: 0;
 }
+.purchased-grid .product-card {
+  height: auto;
+}
 .unavailable-wishlist-item {
   display: flex;
   min-width: 0;

@@ -51,6 +51,20 @@ function projectDetail(row) {
 }
 
 export function createCustomerOrderService({ prisma }) {
+  async function readDetail(auth, where) {
+    return prisma.$transaction(
+      async (tx) => {
+        const row = requireOwnedResource(
+          await tx.order.findFirst({
+            where: ownedWhere(auth, where),
+            select: detailSelect,
+          }),
+        );
+        return projectDetail(row);
+      },
+      { isolationLevel: 'RepeatableRead' },
+    );
+  }
   return {
     async list(auth, input) {
       const parsed = customerOrderQuerySchema.safeParse(input);
@@ -103,18 +117,19 @@ export function createCustomerOrderService({ prisma }) {
     },
     async detail(auth, id) {
       const orderId = ownedResourceId(id);
-      return prisma.$transaction(
-        async (tx) => {
-          const row = requireOwnedResource(
-            await tx.order.findFirst({
-              where: ownedWhere(auth, { id: orderId }),
-              select: detailSelect,
-            }),
-          );
-          return projectDetail(row);
-        },
-        { isolationLevel: 'RepeatableRead' },
-      );
+      return readDetail(auth, { id: orderId });
+    },
+    async detailByNumber(auth, orderNumber) {
+      // Match the existing server-issued MH-UUID format; never normalize into
+      // another order number or expose whether a foreign number exists.
+      if (
+        typeof orderNumber !== 'string' ||
+        !/^MH-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
+          orderNumber,
+        )
+      )
+        requireOwnedResource(null);
+      return readDetail(auth, { orderNumber });
     },
     async cancel(auth, id, input) {
       const orderId = ownedResourceId(id);

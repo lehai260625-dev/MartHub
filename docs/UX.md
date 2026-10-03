@@ -222,6 +222,8 @@ The canonical workspace is `/account/my-items` with two tabs: `Mua lại` and `Y
 - Deduplicate by current product identity and rank by purchase recency and frequency.
 - Show last purchase date, purchase count when useful, current price, and current availability.
 - Link purchase provenance to the relevant order detail.
+- M7.5 provenance resolves the existing owned source orderId detail to its orderNumber, then links to canonical `/account/orders/[orderNumber]`. That destination uses the approved owned by-number lookup and shows immutable order/address/item money snapshots plus the complete redacted timeline; it never substitutes current catalog data. Failed provenance reads offer retry. Whole-order reorder reuses the existing partial-result API and refreshes the active cart.
+- Reorder tabs default to `reorder` when tab is absent or unrecognized; Wishlist uses the existing `wishlist` link. Purchase sort (`recent`/`frequent`) and page are URL state, reset to page 1 when sorting, and use M7.3 pagination. Historical identity/count/date remain visible alongside current cards; unavailable entries have no current product link/price and disabled Add. Empty purchases reuse the existing homepage popular data, with category browsing on fallback failure/empty; no personalized recommendation rules are added.
 - Quick Add uses current catalog price and current stock, never the historical order price.
 - Archived or out-of-stock items remain recognizable but cannot be added; their status is explicit.
 - Pagination or progressive loading preserves deterministic ordering and does not duplicate products.

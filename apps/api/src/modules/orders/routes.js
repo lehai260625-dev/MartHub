@@ -20,6 +20,19 @@ export function createCustomerOrderRouter({ prisma, config }) {
   router.get('/', async (req, res) =>
     res.json(await service.list(req.auth, req.query)),
   );
+  router.get('/by-number/:orderNumber', async (req, res) => {
+    if (Object.keys(req.query).length)
+      throw new ApiError(
+        422,
+        'VALIDATION_ERROR',
+        'This endpoint does not accept query options.',
+      );
+    res.json(
+      customerOrderDetailResponseSchema.parse({
+        data: await service.detailByNumber(req.auth, req.params.orderNumber),
+      }),
+    );
+  });
   router.get('/:orderId', async (req, res) => {
     if (Object.keys(req.query).length)
       throw new ApiError(
