@@ -349,6 +349,36 @@ export function createCatalogService({ prisma }) {
         return rows.filter((row) => row.prices.length).map(toCard);
       });
     },
+    async getRecommendationCandidates({
+      excludeIds,
+      categoryIds,
+      popular = false,
+      take,
+    }) {
+      return atDatabaseTime(prisma, async (db, _now, priceWhere, select) => {
+        const rows = await db.product.findMany({
+          where: {
+            ...publicProduct,
+            id: { notIn: excludeIds },
+            ...(popular
+              ? { isPopular: true }
+              : { categoryId: { in: categoryIds } }),
+            prices: { some: priceWhere },
+            inventory: { is: { quantityOnHand: { gt: 0 } } },
+          },
+          orderBy: popular
+            ? [
+                { publishedAt: { sort: 'desc', nulls: 'last' } },
+                { createdAt: 'desc' },
+                { id: 'asc' },
+              ]
+            : [{ isPopular: 'desc' }, { createdAt: 'desc' }, { id: 'asc' }],
+          take,
+          select,
+        });
+        return rows.map(toCard);
+      });
+    },
     async getProduct(slug) {
       if (!validSlug(slug)) notFound();
       return atDatabaseTime(prisma, async (tx, _now, priceWhere, select) => {

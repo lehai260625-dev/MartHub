@@ -41,3 +41,4 @@ export * from './admin-promotion.js';
 export * from './orders.js';
 export * from './my-items.js';
 export * from './reorder.js';
+export * from './recommendations.js';

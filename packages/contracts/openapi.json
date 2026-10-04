@@ -4063,6 +4063,53 @@
           }
         }
       }
+    },
+    "/users/me/recommendations": {
+      "get": {
+        "operationId": "customerRecommendations",
+        "summary": "Owned delivered-history recommendations or honestly labeled popular fallback",
+        "description": "Customer-only/no-store; no query options. All-time owned DELIVERED quantity follows current Product.categoryId, not historical taxonomy. Exclude delivered purchased products and nonpublic/unpriced/zero-stock candidates. Personalized order: quantity category affinity DESC,isPopular DESC,createdAt DESC,id ASC, maximum 8. A nonempty personalized result has label PERSONALIZED with no padding. No history or zero personalized candidates uses curated M3.5 popular ordering with current eligibility/exclusions, label POPULAR even if empty. No private history or affinity values are exposed.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Up to eight eligible current public cards and explicit source label",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "404": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "422": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "500": {
+            "$ref": "#/components/responses/AuthError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9525,6 +9572,253 @@
             },
             "required": ["cartId", "added", "skipped"],
             "additionalProperties": false
+          }
+        },
+        "required": ["data"],
+        "additionalProperties": false
+      },
+      "RecommendationsResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "const": "PERSONALIZED"
+                  },
+                  "products": {
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "slug": {
+                          "type": "string"
+                        },
+                        "sku": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "shortDescription": {
+                          "type": ["string", "null"]
+                        },
+                        "image": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string",
+                                  "format": "uri"
+                                },
+                                "altText": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["url", "altText"],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "price": {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]*)$"
+                        },
+                        "compareAtPrice": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^(0|[1-9][0-9]*)$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "currency": {
+                          "type": "string",
+                          "const": "VND"
+                        },
+                        "sellingUnit": {
+                          "type": "string"
+                        },
+                        "badges": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": ["SALE", "NEW"]
+                          }
+                        },
+                        "availability": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "const": "IN_STOCK"
+                            },
+                            "canAddToCart": {
+                              "type": "boolean",
+                              "const": true
+                            }
+                          },
+                          "required": ["status", "canAddToCart"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "sku",
+                        "name",
+                        "shortDescription",
+                        "image",
+                        "price",
+                        "compareAtPrice",
+                        "currency",
+                        "sellingUnit",
+                        "badges",
+                        "availability"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": ["label", "products"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "const": "POPULAR"
+                  },
+                  "products": {
+                    "maxItems": 8,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "slug": {
+                          "type": "string"
+                        },
+                        "sku": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "shortDescription": {
+                          "type": ["string", "null"]
+                        },
+                        "image": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string",
+                                  "format": "uri"
+                                },
+                                "altText": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["url", "altText"],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "price": {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]*)$"
+                        },
+                        "compareAtPrice": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^(0|[1-9][0-9]*)$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "currency": {
+                          "type": "string",
+                          "const": "VND"
+                        },
+                        "sellingUnit": {
+                          "type": "string"
+                        },
+                        "badges": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": ["SALE", "NEW"]
+                          }
+                        },
+                        "availability": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "const": "IN_STOCK"
+                            },
+                            "canAddToCart": {
+                              "type": "boolean",
+                              "const": true
+                            }
+                          },
+                          "required": ["status", "canAddToCart"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "sku",
+                        "name",
+                        "shortDescription",
+                        "image",
+                        "price",
+                        "compareAtPrice",
+                        "currency",
+                        "sellingUnit",
+                        "badges",
+                        "availability"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": ["label", "products"],
+                "additionalProperties": false
+              }
+            ]
           }
         },
         "required": ["data"],
