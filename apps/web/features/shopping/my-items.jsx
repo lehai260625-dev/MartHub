@@ -77,7 +77,7 @@ function WishlistPanel() {
   return (
     <>
       {shopping.wishlistMutationError ? (
-        <p className="mb-4 text-red-800" role="alert">
+        <p className="mb-4 text-error" role="alert">
           Wishlist could not be updated. Your saved items were restored; try
           again.
         </p>
@@ -265,9 +265,7 @@ export function MyItems() {
   return (
     <>
       <header>
-        <p className="text-sm font-semibold uppercase text-emerald-800">
-          Account
-        </p>
+        <p className="text-sm font-semibold uppercase text-primary">Account</p>
         <h1 className="mt-2 text-3xl font-semibold">My Items</h1>
       </header>
       <nav aria-label="My Items" className="my-items-tabs">

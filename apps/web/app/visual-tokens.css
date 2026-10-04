@@ -1,0 +1,95 @@
+/* Owner-approved M9.1 light visual system. UX.md owns usage and provenance. */
+:root {
+  --mh-primary: #0f766e;
+  --mh-primary-hover: #115e59;
+  --mh-primary-active: #134e4a;
+  --mh-accent: #c2410c;
+  --mh-accent-hover: #9a3412;
+  --mh-background: #f8fafc;
+  --mh-surface: #ffffff;
+  --mh-surface-subtle: #f1f5f9;
+  --mh-text: #0f172a;
+  --mh-muted: #475569;
+  --mh-border: #cbd5e1;
+  --mh-border-strong: #94a3b8;
+  --mh-success: #15803d;
+  --mh-success-subtle: #f0fdf4;
+  --mh-warning: #a16207;
+  --mh-warning-subtle: #fefce8;
+  --mh-error: #b91c1c;
+  --mh-error-subtle: #fef2f2;
+  --mh-stock-in: var(--mh-success);
+  --mh-stock-out: var(--mh-error);
+  --mh-disabled-background: #e2e8f0;
+  --mh-disabled-text: #64748b;
+  --mh-focus-ring: var(--mh-primary);
+  --mh-font:
+    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mh-weight-regular: 400;
+  --mh-weight-medium: 500;
+  --mh-weight-semibold: 600;
+  --mh-weight-bold: 700;
+  --mh-space-1: 4px;
+  --mh-space-2: 8px;
+  --mh-space-3: 12px;
+  --mh-space-4: 16px;
+  --mh-space-6: 24px;
+  --mh-space-8: 32px;
+  --mh-space-12: 48px;
+  --mh-space-16: 64px;
+  --mh-radius-xs: 4px;
+  --mh-radius-sm: 6px;
+  --mh-radius-md: 8px;
+  --mh-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.08);
+  --mh-shadow-md: 0 4px 12px rgb(15 23 42 / 0.1);
+  --mh-motion-fast: 120ms;
+  --mh-motion-normal: 180ms;
+  --mh-motion-slow: 240ms;
+  --mh-easing: ease-out;
+}
+
+/* Semantic utility names coexist with legacy Admin utilities; no Admin redesign. */
+@theme inline {
+  --color-primary: var(--mh-primary);
+  --color-primary-hover: var(--mh-primary-hover);
+  --color-primary-active: var(--mh-primary-active);
+  --color-accent: var(--mh-accent);
+  --color-accent-hover: var(--mh-accent-hover);
+  --color-background: var(--mh-background);
+  --color-surface: var(--mh-surface);
+  --color-surface-subtle: var(--mh-surface-subtle);
+  --color-ink: var(--mh-text);
+  --color-muted: var(--mh-muted);
+  --color-line: var(--mh-border);
+  --color-line-strong: var(--mh-border-strong);
+  --color-success: var(--mh-success);
+  --color-success-subtle: var(--mh-success-subtle);
+  --color-warning: var(--mh-warning);
+  --color-warning-subtle: var(--mh-warning-subtle);
+  --color-error: var(--mh-error);
+  --color-error-subtle: var(--mh-error-subtle);
+  --color-stock-in: var(--mh-stock-in);
+  --color-stock-out: var(--mh-stock-out);
+  --font-sans: var(--mh-font);
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-base: 16px;
+  --text-base--line-height: 24px;
+  --text-lg: 18px;
+  --text-lg--line-height: 28px;
+  --text-xl: 20px;
+  --text-xl--line-height: 28px;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 32px;
+  --text-3xl: 30px;
+  --text-3xl--line-height: 36px;
+  --text-4xl: 36px;
+  --text-4xl--line-height: 40px;
+  --radius-brand-xs: var(--mh-radius-xs);
+  --radius-brand-sm: var(--mh-radius-sm);
+  --radius-brand-md: var(--mh-radius-md);
+  --shadow-brand-sm: var(--mh-shadow-sm);
+  --shadow-brand-md: var(--mh-shadow-md);
+}

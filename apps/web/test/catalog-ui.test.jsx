@@ -84,6 +84,7 @@ describe('M3.6 catalog components', () => {
     expect(within(card).getByText(/9\.007\.199\.254\.740\.993/)).toBeVisible();
     expect(within(card).getByText('Sale')).toBeVisible();
     expect(within(card).getByText('New')).toBeVisible();
+    expect(within(card).getByText('In stock')).toHaveClass('text-stock-in');
     expect(
       within(card).getByRole('button', { name: /add .* to cart/i }),
     ).toBeEnabled();
@@ -102,6 +103,9 @@ describe('M3.6 catalog components', () => {
     expect(
       screen.getByRole('button', { name: /out of stock/i }),
     ).toBeDisabled();
+    expect(screen.getByText('Out of stock', { selector: 'p' })).toHaveClass(
+      'text-stock-out',
+    );
     expect(
       screen.queryByText('9.007.199.254.741.993 ₫'),
     ).not.toBeInTheDocument();

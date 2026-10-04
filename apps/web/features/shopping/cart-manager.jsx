@@ -60,7 +60,7 @@ function CartLine({ item }) {
           ) : (
             <strong>Saved cart product unavailable</strong>
           )}
-          <p className={available ? 'text-emerald-800' : 'text-red-800'}>
+          <p className={available ? 'text-stock-in' : 'text-stock-out'}>
             {item.availability === 'IN_STOCK'
               ? 'In stock'
               : item.availability === 'OUT_OF_STOCK'

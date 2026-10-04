@@ -5,7 +5,7 @@ export default function ErrorPage({ retry }) {
     <RouteState title="We could not load this page">
       <p>Please try again.</p>
       <button
-        className="mt-4 min-h-11 rounded px-4 py-2 font-semibold text-white bg-emerald-800"
+        className="mt-4 min-h-11 rounded px-4 py-2 font-semibold text-white bg-primary"
         onClick={() => retry()}
       >
         Try again

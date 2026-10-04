@@ -39,21 +39,23 @@ export function ProductCard({ product }) {
       </div>
       <div className="product-card-body">
         <div className="min-h-14">
-          <p className="text-xl font-bold text-neutral-950">
+          <p className="text-xl font-bold text-ink">
             {formatVnd(product.price)}
           </p>
           {compareAt ? (
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-muted">
               <span className="sr-only">Previous price </span>
               <del>{formatVnd(compareAt)}</del>
             </p>
           ) : null}
         </div>
-        <p className="text-sm text-neutral-600">{product.sellingUnit}</p>
+        <p className="text-sm text-muted">{product.sellingUnit}</p>
         <h2 className="product-name">
           <Link href={`/products/${product.slug}`}>{product.name}</Link>
         </h2>
-        <p className="min-h-6 text-sm font-medium text-neutral-700">
+        <p
+          className={`min-h-6 text-sm font-medium ${available ? 'text-stock-in' : 'text-stock-out'}`}
+        >
           {available ? 'In stock' : 'Out of stock'}
         </p>
         <AddToCartButton className="mt-auto" product={product} />

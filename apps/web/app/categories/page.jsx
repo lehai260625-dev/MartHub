@@ -27,7 +27,7 @@ export default async function CategoriesPage() {
       />
       <main id="main-content" className="catalog-page">
         <nav aria-label="Catalog" className="catalog-nav">
-          <Link className="font-bold text-emerald-800" href="/">
+          <Link className="font-bold text-primary" href="/">
             MartHub
           </Link>
           <Link aria-current="page" href="/categories">
@@ -39,7 +39,7 @@ export default async function CategoriesPage() {
           <h1 className="text-3xl font-semibold tracking-normal md:text-4xl">
             Browse categories
           </h1>
-          <p className="mt-3 leading-7 text-neutral-700">
+          <p className="mt-3 leading-7 text-muted">
             Choose a department, then narrow the listing with filters stored in
             the URL.
           </p>
@@ -57,7 +57,7 @@ export default async function CategoriesPage() {
                   </Link>
                 </h2>
                 {category.description ? (
-                  <p className="mt-2 text-sm leading-6 text-neutral-700">
+                  <p className="mt-2 text-sm leading-6 text-muted">
                     {category.description}
                   </p>
                 ) : null}
@@ -69,7 +69,7 @@ export default async function CategoriesPage() {
                     {category.children.map((child) => (
                       <li key={child.id}>
                         <Link
-                          className="inline-flex min-h-11 items-center rounded-full border border-neutral-300 px-3 text-sm font-medium hover:border-emerald-700"
+                          className="inline-flex min-h-11 items-center rounded-brand-md border border-line px-3 text-sm font-medium hover:border-primary"
                           href={`/category/${child.slug}`}
                         >
                           {child.name}
@@ -82,11 +82,11 @@ export default async function CategoriesPage() {
             ))}
           </ul>
         ) : (
-          <div className="mt-8 rounded-lg bg-neutral-100 p-6">
+          <div className="mt-8 rounded-brand-md bg-surface-subtle p-6">
             <h2 className="text-xl font-semibold">
               No categories are available
             </h2>
-            <p className="mt-2 text-neutral-700">Please try again later.</p>
+            <p className="mt-2 text-muted">Please try again later.</p>
           </div>
         )}
       </main>

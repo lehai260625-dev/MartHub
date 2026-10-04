@@ -29,7 +29,7 @@ export function ProductDetail({ product }) {
           className="product-detail-summary"
         >
           {product.brand ? (
-            <p className="text-sm font-semibold uppercase text-emerald-800">
+            <p className="text-sm font-semibold uppercase text-primary">
               {product.brand}
             </p>
           ) : null}
@@ -40,7 +40,7 @@ export function ProductDetail({ product }) {
             {product.name}
           </h1>
           {product.shortDescription ? (
-            <p className="mt-3 leading-7 text-neutral-700">
+            <p className="mt-3 leading-7 text-muted">
               {product.shortDescription}
             </p>
           ) : null}
@@ -52,18 +52,18 @@ export function ProductDetail({ product }) {
             </ul>
           ) : null}
           <div className="mt-6 min-h-20">
-            <p className="text-3xl font-bold text-neutral-950">
+            <p className="text-3xl font-bold text-ink">
               {formatVnd(product.price)}
             </p>
             {compareAt ? (
-              <p className="mt-1 text-base text-neutral-600">
+              <p className="mt-1 text-base text-muted">
                 <span className="sr-only">Previous price </span>
                 <del>{formatVnd(compareAt)}</del>
               </p>
             ) : null}
           </div>
           <p
-            className={`mt-3 font-semibold ${available ? 'text-emerald-800' : 'text-red-800'}`}
+            className={`mt-3 font-semibold ${available ? 'text-stock-in' : 'text-stock-out'}`}
             id="product-availability"
           >
             {available ? 'In stock' : 'Out of stock'}
@@ -93,7 +93,7 @@ export function ProductDetail({ product }) {
           <h2 className="text-2xl font-semibold" id="product-description">
             Product details
           </h2>
-          <p className="mt-3 max-w-3xl leading-7 text-neutral-700">
+          <p className="mt-3 max-w-3xl leading-7 text-muted">
             {product.description}
           </p>
         </section>

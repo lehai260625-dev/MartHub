@@ -332,7 +332,76 @@ MartHub requires its own wordmark, voice, imagery, icons, and balanced multi-hue
 - Promotions use MartHub-created copy and owned, licensed, or generated assets.
 - Reference brand names and products do not appear in fixtures, production content, screenshots, or portfolio captures.
 
+## Finalized M9.1 Visual System
+
+Owner decisions approved on 2026-10-05 supersede the pre-implementation blocker below. MartHub uses a light teal + warm-orange identity, not a retail-reference blue/yellow pairing. Implementation lives in `apps/web/app/visual-tokens.css`, imported by `globals.css`; `--mh-*` custom properties and semantic Tailwind utilities share the same source. Existing Admin-specific utility styling is not redesigned.
+
+### Colors and accessible pairings
+
+| Token | Value | Usage |
+| --- | --- | --- |
+| primary / hover / active | `#0F766E` / `#115E59` / `#134E4A` | Links, wordmark, white-label primary actions |
+| accent / hover | `#C2410C` / `#9A3412` | Restrained brand accent; white labels when used as an action/badge |
+| background / surface / surfaceSubtle | `#F8FAFC` / `#FFFFFF` / `#F1F5F9` | Page / content / quiet media and supporting surfaces |
+| textPrimary / textMuted | `#0F172A` / `#475569` | Body/headings and supporting text |
+| border / borderStrong | `#CBD5E1` / `#94A3B8` | Decorative separators and inactive boundaries, not the sole indicator of an enabled control |
+| success / successSubtle / stockIn | `#15803D` / `#F0FDF4` / success | Explicit success or In stock labels |
+| warning / warningSubtle | `#A16207` / `#FEFCE8` | Explicit warning labels on white, page background or warningSubtle |
+| error / errorSubtle / stockOut | `#B91C1C` / `#FEF2F2` / error | Field errors, explicit error or Out of stock labels |
+| disabledBackground / disabledText | `#E2E8F0` / `#64748B` | Truly inactive native controls; no opacity blending |
+| focusRing | primary | Visible 2px outline with 2px offset on light surfaces |
+
+Normal-size body, muted, primary/accent links and white-label action/badge colors pass 4.5:1 on their supported surfaces. Success/error/stock text uses an explicit label, not color alone. Enabled input/control outlines use textMuted or primary where a recognizable boundary is required; the lighter border tokens are decorative only. Focus uses an offset so teal is compared against the surrounding light surface, not the teal button fill.
+
+Do not use warning-colored normal-size text on generic surfaceSubtle: the exact ratio is 4.4939:1 and must not be rounded to PASS. Use warningSubtle/white, or ordinary textPrimary with a warning label. The owner-specified disabled pair has approximately 3.86:1 contrast and is reserved for actually inactive controls, which are exempt from WCAG text/non-text contrast requirements; explanations and actionable recovery links remain normal AA text. Decorative orange accents against teal are not text or functional indicators. No additional brand colors are introduced.
+
+### Typography, geometry and motion
+
+- System font only: `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`. No external font/network dependency. Weights: 400 / 500 / 600 / 700. Body is 16/24; labels/actions normally 14-16px; no text below 12px.
+- Type size/line-height in px: xs 12/16; sm 14/20; base 16/24; lg 18/28; xl 20/28; 2xl 24/32; 3xl 30/36; 4xl 36/40. Headings use semibold/bold according to hierarchy, never viewport-scaled typography.
+- Spacing in px: 4, 8, 12, 16, 24, 32, 48, 64. Fixed geometry such as existing 44px targets, media sizes and container tracks remains explicit; this is not a layout redesign.
+- Radii: xs 4px, sm 6px, md 8px. Affected storefront cards/panels/inputs/buttons, including former 12px catalog surfaces and round wishlist buttons, are bounded at 8px. No unrelated Admin-radius cleanup.
+- Shadows: sm `0 1px 2px rgba(15,23,42,0.08)`; md `0 4px 12px rgba(15,23,42,0.10)`. Border-first cards; shadows reserved for elevated layers such as the existing menu.
+- Motion: 120/180/240ms, ease-out. Existing action color feedback may transition; no autoplay or decorative animation. Reduced motion disables animations/transitions and sets duration tokens to zero.
+
+### Asset policy and provenance register
+
+All tracked storefront assets below were authored locally for MartHub on 2026-10-05, using text/simple geometric paths only. No downloaded logo pack, external font, retailer shape, spark/star/sunburst or reference artwork was used. Standalone SVG wordmark uses the approved system font; the monogram uses original path geometry. Next.js's existing metadata-file convention serves `app/icon.svg` as the browser/app icon. The existing text header wordmark is normalized with tokenized typography and a small original orange underline, without changing header composition.
+
+| Path | Purpose | Source | Ownership/license |
+| --- | --- | --- | --- |
+| `apps/web/public/brand/wordmark.svg` | Reusable MartHub text wordmark | PROJECT_ORIGINAL | Project-created original; no third-party asset license required |
+| `apps/web/public/brand/monogram.svg` | Reusable compact MH mark | PROJECT_ORIGINAL | Project-created original path geometry |
+| `apps/web/app/icon.svg` | Favicon/app icon; same MH source geometry | PROJECT_ORIGINAL | Project-created original; kept identical to monogram |
+| `apps/web/features/shopping/shopping-header.jsx`, `apps/web/app/globals.css` | Existing text wordmark with tokenized original underline | PROJECT_ORIGINAL | Project-authored text/CSS; existing header layout retained |
+| `features/catalog/product-card.jsx`, `product-gallery.jsx`, `features/shopping/cart-manager.jsx` under `apps/web` | Existing HTML/CSS MH missing-media fallbacks | PROJECT_ORIGINAL | Existing project-authored text/geometry, retained |
+| `apps/web/features/shopping/shopping-actions.jsx` | Existing text/symbol action controls | PROJECT_ORIGINAL | Project-authored controls; no installed third-party icon family found |
+
+No new icon package or mixed icon family is introduced. Product media remains authoritative through ProductImage/Cloudinary; promotion media remains authoritative through Promotion/Cloudinary. Only ADMIN_UPLOADED_OWNED, GENERATED_FOR_MARTHUB or LICENSED_WITH_RECORD media with ownership/license evidence may be used. Upload authorization alone is not license evidence; unknown provenance is disallowed in the final storefront. M3.2 demo media remains empty, so this task does not claim to audit unknown production uploads. Future tracked assets must extend this register with path, purpose, source and ownership/license evidence.
+
+No standalone category photos or hero/product/campaign/editorial image library is created in M9.1. Missing product media retains the existing MH fallback. Later composition may use safe product images or original token-based CSS/SVG graphics; raster work must have recorded provenance. The two `docs/references/*.png` files are reference-only, never storefront assets.
+
+M9.1 verification on 2026-10-05: the documented allowed pairings and original-source inventory pass 37 focused checks; all 184 frontend checks and 28 four-viewport production-build browser checks pass. Desktop/mobile storefront and original SVG asset screenshots were inspected, with keyboard focus, reduced motion, stock labels, axe and no page overflow verified. The warning pairing restriction and inactive-control contrast exemption above are intentional and tested; they are not claims that every arbitrary token pairing passes AA. Detailed test/build/lint/format evidence and completion status remain in PLAN.md. Homepage and header/footer composition are unchanged and remain later tasks.
+
 ## Visual QA Matrix
+
+### M9.1 pre-implementation visual audit (2026-10-04)
+
+Historical status: BLOCKED pending owner decisions, resolved by the finalized system above on 2026-10-05. Existing implementation values below are observations, not approved final design tokens. The design-system audit found no separate brand specification or approved semantic token table at preflight.
+
+- Current baseline: `apps/web/app/globals.css` uses emerald actions (`#065f46`, hover `#064e3b`), white/neutral surfaces, `#171717` body text, `#525252` muted text, `#991b1b` errors, an Arial/Helvetica/sans-serif stack, a 3px `#047857` focus outline with 4px offset, and reduced-motion overrides. Tailwind utility styling also remains distributed across components. These do not settle a balanced multi-hue palette, complete state semantics, typography/spacing scales, or reusable elevation/motion tokens. Several catalog surfaces use 12px radii, contrary to the already-approved 8px card maximum; that maximum is not reopened by this audit.
+- Asset inventory: tracked image/font/icon files contain only the two reference PNGs. Existing storefront branding is text-based MartHub with CSS/HTML `MH` media fallbacks; the homepage is a text placeholder. No dedicated logo, favicon/app icon, product/category photo set, or promotional/editorial asset set is tracked. M3.2 seed content is original MartHub copy and seeds no media, as documented in README.md. Cloudinary upload control alone does not establish authorship/license provenance of runtime uploads. Both reference images were inspected only as references, never copied into storefront assets.
+- Static contrast spot-checks using WCAG relative luminance: body on white 17.93:1; muted on white 7.81:1; primary button/link/badge on white 7.68:1; hover action on white 9.72:1; error on white 8.31:1; focus against white 5.48:1; `MH` text on its mint background 6.78:1; disabled pagination text on white 4.74:1. These sampled pairs pass their applicable text/non-text thresholds, but are not a complete rendered contrast review. Opacity-based disabled controls require composited/rendered review; success/warning/stock semantic pairs and all focus adjacencies remain unfinalized. No overall contrast/accessibility PASS is claimed.
+
+Owner decisions required before implementation:
+
+1. Approve the final primary/accent palette and semantic values/pairings for backgrounds, surfaces, text, muted text, borders, success, warning, error, stock and disabled states, including interactive hover/active states. Confirm whether current emerald values are retained rather than treating existing CSS as approval.
+2. Approve the font family/fallback and permitted weights, plus the type-size/line-height scale. Confirm whether the existing system Arial stack is final or an explicitly licensed font is required.
+3. Approve reusable spacing, radius (within the existing 8px card ceiling), shadow/elevation, focus and normal-motion tokens. The existing reduced-motion and accessibility requirements remain mandatory.
+4. Specify the M9.1 brand deliverables and appearance: retain/finalize the text wordmark and `MH` fallback or supply/authorize a new original mark; whether favicon/app icons and an icon family are required, and their approved design/source.
+5. Specify the M9.1 media deliverables and visual direction for product/category and promotional/editorial images: keep the original missing-image fallbacks or provide/create an identified asset set, with which subjects and source/license evidence. Owned/generated/licensed-only provenance and the prohibition on reference copying are already settled; no homepage composition is authorized here.
+
+No code/assets were changed at the original preflight and no palette/font was selected then. Owner decisions are now recorded above; task status and verification evidence are owned by [PLAN.md](./PLAN.md).
 
 The UI finish gate must record screenshots and interaction evidence for these cases. Exact automation ownership and milestone status live in `PLAN.md`.
 

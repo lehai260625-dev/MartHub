@@ -117,7 +117,7 @@ export function CatalogListing({ action, description, result, state, title }) {
   return (
     <main id="main-content" className="catalog-page">
       <nav aria-label="Catalog" className="catalog-nav">
-        <Link className="font-bold text-emerald-800" href="/">
+        <Link className="font-bold text-primary" href="/">
           MartHub
         </Link>
         <Link href="/categories">Categories</Link>
@@ -128,14 +128,14 @@ export function CatalogListing({ action, description, result, state, title }) {
           {title}
         </h1>
         {description ? (
-          <p className="mt-3 leading-7 text-neutral-700">{description}</p>
+          <p className="mt-3 leading-7 text-muted">{description}</p>
         ) : null}
-        <p className="mt-3 text-sm text-neutral-600" aria-live="polite">
+        <p className="mt-3 text-sm text-muted" aria-live="polite">
           {meta.totalItems} {meta.totalItems === 1 ? 'product' : 'products'}
         </p>
       </header>
       <details
-        className="catalog-filter-disclosure mt-6 rounded-lg border border-neutral-300 bg-white p-4"
+        className="catalog-filter-disclosure mt-6 rounded-brand-md border border-line bg-white p-4"
         open
       >
         <summary className="min-h-11 cursor-pointer py-2 font-semibold">
@@ -158,13 +158,13 @@ export function CatalogListing({ action, description, result, state, title }) {
             ))}
           </div>
         ) : (
-          <div className="rounded-lg bg-neutral-100 p-6">
+          <div className="rounded-brand-md bg-surface-subtle p-6">
             <h2 className="text-xl font-semibold">No products found</h2>
-            <p className="mt-2 text-neutral-700">
+            <p className="mt-2 text-muted">
               Try clearing a filter or browsing all categories.
             </p>
             <Link
-              className="mt-4 inline-flex min-h-11 items-center font-semibold text-emerald-800 underline"
+              className="mt-4 inline-flex min-h-11 items-center font-semibold text-primary underline"
               href="/categories"
             >
               Browse categories
@@ -209,13 +209,13 @@ export function InvalidCatalogUrl({ resetHref }) {
   return (
     <main id="main-content" className="catalog-page">
       <div
-        className="rounded-lg border border-red-300 bg-red-50 p-6"
+        className="rounded-brand-md border border-error bg-error-subtle p-6"
         role="alert"
       >
         <h1 className="text-2xl font-semibold">Invalid catalog filters</h1>
         <p className="mt-2">This URL contains filters MartHub cannot apply.</p>
         <Link
-          className="mt-4 inline-flex min-h-11 items-center font-semibold text-emerald-800 underline"
+          className="mt-4 inline-flex min-h-11 items-center font-semibold text-primary underline"
           href={resetHref}
         >
           Clear invalid filters
