@@ -64,7 +64,8 @@ export function ShoppingProvider({ children }) {
   const auth = useAuth();
   const queryClient = useQueryClient();
   const userId = auth.user?.id ?? 'guest';
-  const enabled = auth.status === 'authenticated';
+  const enabled =
+    auth.status === 'authenticated' && auth.user.role === 'CUSTOMER';
   const cartKey = ['cart', userId];
   const wishlistKey = ['wishlist', userId];
   const cartQuery = useQuery({

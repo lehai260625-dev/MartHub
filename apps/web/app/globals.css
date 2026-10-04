@@ -1,148 +1,11 @@
 @import 'tailwindcss';
 @import './visual-tokens.css';
+@import './storefront-chrome.css';
 :root {
   color-scheme: light;
 }
 
-/* M5.5 authenticated shopping shell and collection surfaces */
-.store-header {
-  position: relative;
-  z-index: 20;
-  border-bottom: 1px solid var(--mh-border);
-  background: var(--mh-surface);
-}
-.store-header-primary,
-.store-header-secondary {
-  width: min(100%, 80rem);
-  margin-inline: auto;
-  padding-inline: var(--mh-space-4);
-}
-.store-header-primary {
-  display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  align-items: center;
-  gap: var(--mh-space-3);
-  padding-block: var(--mh-space-3);
-}
-.store-wordmark {
-  position: relative;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  color: var(--mh-primary);
-  font-size: var(--text-2xl);
-  font-weight: var(--mh-weight-bold);
-}
-.store-wordmark::after {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: var(--mh-space-6);
-  height: var(--mh-space-1);
-  background: var(--mh-accent);
-  content: '';
-}
-.store-menu {
-  position: relative;
-}
-.store-menu summary {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  font-weight: var(--mh-weight-bold);
-}
-.store-menu-long {
-  display: none;
-}
-.store-menu nav {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 15rem;
-  border: 1px solid var(--mh-border);
-  border-radius: var(--mh-radius-sm);
-  background: var(--mh-surface);
-  padding: var(--mh-space-2);
-  box-shadow: var(--mh-shadow-md);
-}
-.store-menu:not([open]) nav {
-  display: none;
-}
-.store-menu nav a {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  padding-inline: var(--mh-space-2);
-}
-.store-search {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-.store-search input {
-  min-width: 0;
-  min-height: 44px;
-  border: 1px solid var(--mh-muted);
-  border-radius: var(--mh-radius-sm) 0 0 var(--mh-radius-sm);
-  padding-inline: var(--mh-space-3);
-  font: inherit;
-}
-.store-search button {
-  min-height: 44px;
-  border: 1px solid var(--mh-primary);
-  border-radius: 0 var(--mh-radius-sm) var(--mh-radius-sm) 0;
-  background: var(--mh-primary);
-  color: var(--mh-surface);
-  padding-inline: var(--mh-space-4);
-  font-weight: var(--mh-weight-bold);
-}
-.store-header-link,
-.store-cart-link {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--mh-text);
-  font-size: var(--text-sm);
-  line-height: var(--text-sm--line-height);
-  font-weight: var(--mh-weight-bold);
-}
-.store-header-link:first-of-type {
-  display: none;
-}
-.store-cart-link span {
-  min-width: 2ch;
-  margin-left: var(--mh-space-1);
-  border-radius: var(--mh-radius-md);
-  background: var(--mh-primary);
-  color: var(--mh-surface);
-  padding: var(--mh-space-1) var(--mh-space-1);
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-.store-header-secondary {
-  display: flex;
-  min-height: 44px;
-  align-items: center;
-  gap: var(--mh-space-4);
-  overflow-x: auto;
-  border-top: 1px solid var(--mh-border);
-  white-space: nowrap;
-  font-size: var(--text-sm);
-  line-height: var(--text-sm--line-height);
-}
-.store-header-secondary span {
-  margin-right: auto;
-}
-.store-header-secondary a {
-  display: none;
-  min-height: 44px;
-  align-items: center;
-  color: var(--mh-primary);
-  font-weight: var(--mh-weight-semibold);
-}
+/* M5.5 collection surfaces; storefront chrome is defined below. */
 .wishlist-button {
   display: grid;
   width: 44px;
@@ -340,17 +203,8 @@
   width: 5rem;
 }
 @media (min-width: 768px) {
-  .store-header-primary,
-  .store-header-secondary,
   .shopping-page {
     padding-inline: var(--mh-space-6);
-  }
-  .store-header-primary {
-    grid-template-columns: auto auto minmax(12rem, 1fr) auto auto;
-  }
-  .store-search {
-    grid-column: 3;
-    grid-row: 1;
   }
   .cart-line {
     display: grid;
@@ -366,24 +220,6 @@
   }
 }
 @media (min-width: 1024px) {
-  .store-header-primary {
-    grid-template-columns: auto auto minmax(16rem, 1fr) auto auto auto;
-  }
-  .store-menu-short {
-    display: none;
-  }
-  .store-menu-long {
-    display: inline;
-  }
-  .store-header-link:first-of-type {
-    display: inline-flex;
-  }
-  .store-search {
-    grid-column: 3;
-  }
-  .store-header-secondary a {
-    display: inline-flex;
-  }
   .cart-layout {
     grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.38fr);
   }

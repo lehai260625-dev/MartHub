@@ -5,7 +5,7 @@ test('original brand, system typography and keyboard focus render without overfl
   page,
 }) => {
   await page.goto('/');
-  const wordmark = page.locator('.store-wordmark');
+  const wordmark = page.getByRole('banner').locator('.store-wordmark');
   await expect(wordmark).toHaveText('MartHub');
   await expect(wordmark).toHaveCSS('color', 'rgb(15, 118, 110)');
   await expect(page.locator('body')).toHaveCSS('font-size', '16px');

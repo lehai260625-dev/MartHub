@@ -149,33 +149,63 @@ M8.5 verification on 2026-10-04: approved dashboard controls, zero/empty/partial
 
 ## Global Header and Navigation
 
-### Desktop: Two Tiers
+### Desktop: Two Tiers (M9.2 owner-approved, >=768px)
 
 The primary row contains, in order:
 
 1. MartHub wordmark linking home.
-2. Departments trigger opening a categorized menu.
-3. Large search form with visible label or accessible name, query input, and search icon button.
-4. My Items shortcut.
-5. Account entry showing a neutral signed-out label or the authenticated customer's name.
-6. Cart control with item-count badge and VND subtotal when space permits.
+2. Dominant search form reusing the existing GET /search q contract and URL restoration.
+3. Truthful compact delivery context.
+4. Guest direct sign-in or role-specific authenticated account menu.
+5. Customer/guest cart action with an icon, desktop Giỏ hàng label and available count; no subtotal.
 
 The secondary row contains:
 
-- Delivery context: `Chọn khu vực giao hàng` for guests, or a shortened default-address area for signed-in customers.
-- Deals, Categories, New Products, Popular Products, and only other destinations backed by real content.
+- Real catalog/navigation links only: Trang chủ (/) and Danh mục (/categories).
+- Deals is hidden: featured=true is not markdown deals, and no unimplemented homepage anchor is used.
 
 Delivery context may affect shipping eligibility or configured shipping fees. Under the approved single-warehouse model it does not imply location-specific inventory. No exact delivery date is shown unless calculated by the backend.
 
 ### Tablet and Mobile
 
 - Preserve logo, account, and cart in the top row; move search to a dedicated full-width row.
-- Replace the desktop departments menu and secondary navigation with one accessible navigation drawer.
+- Place mobile catalog navigation and role-specific account actions in one accessible navigation drawer.
 - Keep delivery context visible as a compact row below search rather than hiding it in account settings.
 - Keep cart count stable in width as values change.
 - Search submission, navigation drawer, account menu, and cart must be usable with keyboard and touch.
 
-Sticky behavior is allowed only when it does not consume excessive mobile viewport height. Search and purchase actions take precedence over secondary promotional navigation.
+M9.2 is non-sticky. Any later sticky/polish decision belongs to M9.5 and must not obscure content or consume excessive mobile viewport height.
+
+### M9.2 finalized interaction and footer contract
+
+Owner approval on 2026-10-05 supersedes the original 1024px header threshold and permissive sticky wording: desktop two-level header starts at 768px; below it use compact MartHub brand, account/cart controls, a prominent full-width search and an accessible mobile navigation drawer. M9.2 is NON-STICKY at every size. Existing desktop storefront proportions are not a retail-reference composition. Reuse M9.1 system type/tokens, <=8px radii, original wordmark/MH, offset focus and reduced motion. Header remains absent from /admin and the existing focused /login and /register surfaces; footer is available on all non-admin surfaces including auth, account and cart/checkout. Admin shell receives neither.
+
+Guest delivery says Giao đến / Đăng nhập để chọn địa chỉ and uses safe login return to /account/addresses. Customer delivery reads the authoritative active default address using the existing address query/schema/cache key, and shows the existing checkout compact district/province location (never street, phone or recipient). Do not select a non-default address on the client. Loading is a neutral compact placeholder; error says Không tải được địa chỉ with the existing query retry; missing default says Thêm địa chỉ linking to /account/addresses. An Admin on the storefront has no Customer delivery context.
+
+Desktop guest account is direct Đăng nhập; Customer menu offers My Items (/account/my-items?tab=reorder), Đơn hàng, Hồ sơ, Địa chỉ and existing-session Đăng xuất. Admin-on-storefront menu offers Quản trị (/admin) and Đăng xuất only. Mobile account actions live in the shared accessible drawer. Auth bootstrap uses a disabled/neutral control without guest-link flash; recoverable errors show explicit existing-provider retry. Logout uses existing serialized logout; local pending/error feedback does not invent another auth mechanism. Native buttons, named navigation and menus use expanded/controls state, Escape and trigger focus restoration. Drawer is modal with contained Tab/Shift+Tab and background interaction prevented. Outside/focus departure closes the desktop account disclosure without stealing focus.
+
+Cart uses existing shopping/query state and optimistic rollback. Guest has a usable /cart login-return destination without a fabricated numeric badge. Customer loading/error leaves the link usable without unknown/stale count; error can use existing retryCart recovery. Successful state exposes the canonical itemCount, including pending optimistic updates owned by ShoppingProvider. Never calculate subtotal in the header. Admin has no Customer cart/My Items links or Customer cart/delivery requests from storefront chrome. Header search submits only q through the established GET form; refresh/back restore URL q, shared catalog validation remains authoritative and no new query meaning is added.
+
+Footer: a MartHub original brand block with neutral shopping copy (single-vendor, not a multi-seller marketplace claim), Mua sắm and Tài khoản. Mua sắm links Trang chủ /, Danh mục /categories, Tìm kiếm /search, Giỏ hàng /cart only when the current role can use cart. Guest Tài khoản links Đăng nhập /login and Đăng ký /register; Customer uses the four account links above; Admin uses Quản trị /admin. Bootstrap/error states do not flash guest links; existing auth retry remains accessible. No fake help/about/contact/privacy/terms/social links or new policy claims. All destinations exist in the current router. Below 768px stack sections; at 768px+ use columns, never a JS accordion. Focus order follows native DOM order, controls have connected labels/names and at least 44px targets, statuses use text, and no horizontal page overflow is permitted at 360/768/1024/1440.
+
+M9.2 implementation verification (2026-10-05): the approved desktop/mobile chrome and role-specific footer are implemented in the existing shopping/provider layer with a shared real-route allowlist and semantic-token stylesheet. Responsive DOM order keeps search primary without positive tabindex; the mobile native modal adds explicit Tab/Shift+Tab boundary containment and Escape/focus restoration. Guest/Customer/Admin and bootstrap/error/retry states, default-address privacy, canonical cart count, actual session signOut, URL search restoration, route existence, axe and no-overflow checks pass. Required-size screenshots, including the open mobile drawer, are reviewed; original wordmark/token treatment remains distinct from references. Counts, commands/check outcomes and completion status are recorded only in [PLAN.md](./PLAN.md). No homepage module or M9.3+ work is included.
+
+### M9.2 pre-implementation contract audit (2026-10-05)
+
+Historical status: BLOCKED at preflight, resolved by the finalized M9.2 contract above (including the owner-approved 768px header threshold). Existing catalog search already owns normalized 2-80 character q, URL-addressable filters and reload/back behavior; no new search API or authentication implementation is needed. Native labels, logical keyboard order, drawer focus trapping/Escape/restoration, background-interaction prevention and reduced motion are required, not optional owner choices. The frontend-a11y audit reinforces these existing requirements.
+
+Current implementation has an M5 shopping header but no footer. It hides the header on /admin, /login and /register, uses a static Departments link list and GET /search submission, and reads auth/shopping contexts. ShoppingProvider enables cart reads for authenticated sessions and exposes loading/error/pending state with optimistic updates and rollback. The cart response contains items and itemCount, not an authoritative subtotal. The present signed-in header does not distinguish ADMIN from CUSTOMER; the header always shows the same guest-like delivery text. These observations do not constitute a finalized M9.2 state contract.
+
+Owner decisions required before implementation:
+
+1. **Footer content and surface coverage:** approve exact column titles, labels and existing-route href allowlist, plus any non-link brand/help/legal text. No help/legal routes exist in the current App Router inventory; absent routes must be omitted, never fabricated. Specify whether the footer appears on public discovery, account, cart/checkout and auth pages; the separate Admin shell must not acquire storefront chrome accidentally.
+2. **Mobile footer and sticky policy:** select stacked groups or collapsible accordions and the breakpoint for that behavior. Choose non-sticky header or an explicit sticky-row policy by breakpoint; current wording merely permits stickiness when it does not consume excessive height.
+3. **Delivery context:** approve the guest label and whether it is plain information or a link to an existing destination (there is no guest region-picker flow). For Customers, specify the exact shortened default-address fields and destination, with approved no-address/loading/error fallback behavior. Do not expose full addresses or invent region eligibility/delivery promises; existing checkout eligibility is not a region selector.
+4. **Account/role presentation:** define the storefront header's authenticated ADMIN behavior and destinations for account/My Items/cart/delivery, versus CUSTOMER and guest. Specify account presentation during bootstrap/recoverable auth errors and whether account is a direct link or a menu with an approved link list. Existing provider/session logic is reused; no new role or authentication policy is proposed.
+5. **Cart presentation:** approve header loading/error/pending behavior so unknown/unavailable data is not presented as a confirmed empty cart. Clarify the UX subtotal requirement: omit subtotal in M9.2, or define a permitted source/calculation and availability rules using existing data, plus when it appears. The current /cart response has no subtotal; no checkout/revenue calculation or backend expansion is authorized by this task.
+6. **Commercial navigation destinations:** settle the Deals label/destination. The current /search?featured=true route filters featured products, not the M3.5 markdown-based deals dataset. Approve an accurate existing-route label/mapping (or omit Deals until a valid destination exists); do not introduce a new deals endpoint/page or a homepage module in M9.2.
+
+No implementation or guessed navigation/footer copy was introduced at the original preflight. Owner decisions are now recorded above; task status and implementation evidence remain owned by PLAN.md. M9.3+ are not started.
 
 ## Homepage Composition
 
@@ -200,7 +230,7 @@ Module rules:
 - Rails do not autoplay. Desktop uses visible previous/next icon controls with tooltips and disabled states. Mobile uses horizontal scroll with snap while retaining natural touch scrolling.
 - Section headings describe the actual dataset. A popular fallback must not be labeled personalized.
 - Empty datasets remove the module cleanly; they do not leave an empty framed section.
-- Footer groups customer help, shopping information, account links, and legal information with a clear mobile accordion or stacked treatment.
+- Footer uses the finalized M9.2 brand, Mua sắm and role-specific Tài khoản groups, with stacked mobile sections and no unavailable help/legal destinations.
 
 ## Product Card Contract
 
@@ -288,8 +318,8 @@ The references are desktop screenshots, so mobile and tablet behavior below is a
 | Viewport | Layout behavior |
 | --- | --- |
 | `360px+` | 16px page gutter; full-row search; drawer navigation and filters; horizontal product rails; stacked promo mosaic; cart totals and checkout actions remain visible without overlap |
-| `768px+` | 24px gutter; two-column promotional composition where content permits; wider rails; account layouts may introduce a compact sidebar |
-| `1024px+` | Full two-tier header; persistent departments and commercial navigation; product listing sidebar; three-part promotional mosaic |
+| `768px+` | 24px gutter; full two-level M9.2 header and multi-column footer; two-column promotional composition where content permits; wider rails; account layouts may introduce a compact sidebar |
+| `1024px+` | Existing two-tier M9.2 header; real catalog navigation; product listing sidebar; three-part promotional mosaic |
 | `1440px+` | Constrained content container with approximately 5-6 visible product cards per rail; space increases between modules, not through viewport-scaled typography |
 
 Fixed-format elements use explicit responsive constraints: aspect ratios for imagery, minimum button hit areas, consistent card tracks, and reserved count/price space. Text never scales directly with viewport width and letter spacing remains zero.
@@ -373,7 +403,7 @@ All tracked storefront assets below were authored locally for MartHub on 2026-10
 | `apps/web/public/brand/wordmark.svg` | Reusable MartHub text wordmark | PROJECT_ORIGINAL | Project-created original; no third-party asset license required |
 | `apps/web/public/brand/monogram.svg` | Reusable compact MH mark | PROJECT_ORIGINAL | Project-created original path geometry |
 | `apps/web/app/icon.svg` | Favicon/app icon; same MH source geometry | PROJECT_ORIGINAL | Project-created original; kept identical to monogram |
-| `apps/web/features/shopping/shopping-header.jsx`, `apps/web/app/globals.css` | Existing text wordmark with tokenized original underline | PROJECT_ORIGINAL | Project-authored text/CSS; existing header layout retained |
+| `apps/web/features/shopping/shopping-header.jsx`, `apps/web/app/storefront-chrome.css` | Existing text wordmark with tokenized original underline | PROJECT_ORIGINAL | Project-authored text/CSS; M9.1 wordmark retained in M9.2 chrome; inline cart path is also PROJECT_ORIGINAL |
 | `features/catalog/product-card.jsx`, `product-gallery.jsx`, `features/shopping/cart-manager.jsx` under `apps/web` | Existing HTML/CSS MH missing-media fallbacks | PROJECT_ORIGINAL | Existing project-authored text/geometry, retained |
 | `apps/web/features/shopping/shopping-actions.jsx` | Existing text/symbol action controls | PROJECT_ORIGINAL | Project-authored controls; no installed third-party icon family found |
 

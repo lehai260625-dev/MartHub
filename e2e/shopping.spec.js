@@ -86,10 +86,24 @@ test('customer login return, cart, wishlist, counts and rollback work responsive
       mug.getByRole('button', { name: /remove .* from wishlist/i }),
     ).toBeVisible();
 
-    const departments = page.locator('details.store-menu');
-    await departments.locator('summary').click();
-    await departments.getByRole('link', { name: 'My Items' }).click();
-    await expect(page).toHaveURL('/account/my-items?tab=wishlist');
+    const header = page.getByRole('banner');
+    if (page.viewportSize().width < 768) {
+      await header
+        .getByRole('button', { name: 'Mở điều hướng và tài khoản' })
+        .click();
+      await page
+        .getByRole('dialog')
+        .getByRole('link', { name: 'My Items' })
+        .click();
+    } else {
+      await header.getByRole('button', { name: /^Tài khoản:/ }).click();
+      await header
+        .getByRole('navigation', { name: 'Tài khoản', exact: true })
+        .getByRole('link', { name: 'My Items' })
+        .click();
+    }
+    await expect(page).toHaveURL('/account/my-items?tab=reorder');
+    await page.getByRole('link', { name: 'Wishlist', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'My Items' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Wishlist' })).toHaveAttribute(
       'aria-current',
@@ -98,7 +112,10 @@ test('customer login return, cart, wishlist, counts and rollback work responsive
     await expect(page.getByText('Cove Stoneware Mug')).toBeVisible();
     await audit(page);
 
-    await page.getByRole('link', { name: /cart/i }).first().click();
+    await page
+      .getByRole('banner')
+      .getByRole('link', { name: 'Giỏ hàng', exact: true })
+      .click();
     await expect(page).toHaveURL('/cart');
     const quantity = page.getByLabel('Quantity');
     await quantity.fill('2');
