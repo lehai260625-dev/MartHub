@@ -316,7 +316,7 @@ All endpoints below require `ADMIN`. Responses use `Cache-Control: no-store`, an
 
 Each successfully committed Admin command creates exactly one `AdminAuditLog` row using the request correlation ID and database-authoritative Admin actor. Database mutations and the audit insert share one transaction; if either fails, neither commits. Failed or rejected commands and idempotent commands that make no state change do not create generalized audit rows. Media-signature issuance is the exception to the database-mutation description: successful issuance is audited as a sensitive capability grant, while the signature and credential material are never stored.
 
-Actions use this stable command vocabulary: `CATEGORY_CREATE`, `CATEGORY_UPDATE`, `CATEGORY_ARCHIVE`; `PRODUCT_CREATE`, `PRODUCT_UPDATE`, `PRODUCT_PUBLISH`, `PRODUCT_ARCHIVE`; `PRODUCT_MEDIA_SIGNATURE`, `PRODUCT_MEDIA_REGISTER`, `PRODUCT_MEDIA_UPDATE`, `PRODUCT_MEDIA_REMOVE`; `PRICE_CREATE`; `INVENTORY_ADJUST`; `PROMOTION_CREATE`, `PROMOTION_UPDATE`, `PROMOTION_PUBLISH`, `PROMOTION_ARCHIVE`; and `PROMOTION_MEDIA_SIGNATURE`, `PROMOTION_MEDIA_REGISTER`, `PROMOTION_MEDIA_REMOVE`. Category and Product commands target their entity IDs; Product media signature targets Product while registration/update/removal target ProductImage; price creation targets ProductPriceHistory; inventory adjustment targets Inventory; Promotion and its single-media association target Promotion. Product-media removal uses the removed ProductImage snapshot followed by JSON null; Promotion-media removal uses the safe owning-Promotion state before and after association removal. Snapshots use server-side business-field allowlists and never contain raw request bodies, request headers, authentication material, Cloudinary signatures/secrets, or raw provider responses. Domain histories remain authoritative for price intervals, inventory movements, and provider cleanup attempts.
+Actions use this stable command vocabulary: `CATEGORY_CREATE`, `CATEGORY_UPDATE`, `CATEGORY_ARCHIVE`; `PRODUCT_CREATE`, `PRODUCT_UPDATE`, `PRODUCT_PUBLISH`, `PRODUCT_ARCHIVE`; `PRODUCT_MEDIA_SIGNATURE`, `PRODUCT_MEDIA_REGISTER`, `PRODUCT_MEDIA_UPDATE`, `PRODUCT_MEDIA_REMOVE`; `PRICE_CREATE`; `INVENTORY_ADJUST`; `PROMOTION_CREATE`, `PROMOTION_UPDATE`, `PROMOTION_PUBLISH`, `PROMOTION_ARCHIVE`; `PROMOTION_MEDIA_SIGNATURE`, `PROMOTION_MEDIA_REGISTER`, `PROMOTION_MEDIA_REMOVE`; and `ORDER_STATUS_TRANSITION`. Category and Product commands target their entity IDs; Product media signature targets Product while registration/update/removal target ProductImage; price creation targets ProductPriceHistory; inventory adjustment targets Inventory; Promotion and its single-media association target Promotion; order status transition targets Order. Product-media removal uses the removed ProductImage snapshot followed by JSON null; Promotion-media removal uses the safe owning-Promotion state before and after association removal. Order-transition snapshots contain only order number, status, and cancellation reason when relevant. Snapshots use server-side business-field allowlists and never contain raw request bodies, request headers, authentication material, Cloudinary signatures/secrets, full address/item snapshots, idempotency/request fingerprints, inventory internals, or raw provider responses. Domain histories remain authoritative for price intervals, inventory movements, order status, and provider cleanup attempts.
 
 ### Shell authorization
 
@@ -392,7 +392,7 @@ Promotion media uses the M4.4 JPEG/PNG/WebP, exact 4 MB, five-minute, server-sec
 
 - `GET /admin/orders` - search, filter, sort, and paginate orders.
 - `GET /admin/orders/:orderId` - retrieve order detail and status history.
-- `POST /admin/orders/:orderId/transitions` - apply one allowed transition with an optional or required reason.
+- `POST /admin/orders/:orderId/transitions` - apply one allowed stale-protected transition; cancellation requires a reason and forward transitions reject one.
 - `GET /admin/statistics/overview` - delivered-sales totals, order counts, top products, and low-stock counts for a bounded date range.
 
 M8.1 Admin order reads are Admin-only and no-store. `GET /admin/orders` accepts only `q`, `status`, `sort`, `page`, and `perPage`; unknown or repeated parameters return 422. Search text is trimmed, consecutive whitespace collapses to one space, matching is case-insensitive contains, and normalized empty text is treated as omitted. Nonempty `q` is limited to 100 characters and searches only order number, the Customer's current email, and the persisted recipient-name snapshot; item/product data is not searched. `status` is one optional value from the six existing order statuses and omission means all statuses. Date range filters are outside M8.1. `page` defaults to 1 and `perPage` to 20, both must be positive integers, and `perPage` is capped at 50. `sort` accepts `newest` (default: `createdAt DESC, id DESC`) or `oldest` (`createdAt ASC, id ASC`). The standard pagination metadata is returned.
@@ -405,12 +405,16 @@ Transition requests name the intended target; the server validates the current s
 
 ```json
 {
-  "toStatus": "PACKING",
-  "reason": null
+  "expectedStatus": "CONFIRMED",
+  "toStatus": "PACKING"
 }
 ```
 
-Invalid jumps, reversals, and terminal-state mutations return `409 INVALID_ORDER_TRANSITION`. Cancellation through `PACKING` requires a reason and restores stock exactly once in the same transaction.
+The strict request requires `expectedStatus` and `toStatus`. It accepts `reason` only when `toStatus` is `CANCELLED`; every Admin cancellation from `PENDING`, `CONFIRMED`, or `PACKING` requires a trimmed nonblank reason of at most 240 characters. Blank or overlong cancellation reasons and any reason supplied for a non-cancellation transition return 422. No successful Admin cancellation stores a null reason.
+
+The transaction locks the authoritative Order row. If its current status differs from `expectedStatus`, current status equal to `toStatus` is a successful retry/no-op; otherwise the response is `409 ORDER_STATUS_CONFLICT` with safe details containing `currentStatus` and `expectedStatus`, and no mutation occurs. A same-target no-op returns the current projection without adding history, inventory effects, movements, or generalized audit and never overwrites an existing cancellation reason. This includes a repeated cancellation carrying a different valid reason. When current status equals `expectedStatus`, only the explicit matrix in DATABASE.md is permitted; invalid jumps, reversals, and terminal-state mutations return `409 INVALID_ORDER_TRANSITION`.
+
+Successful mutations and no-ops return HTTP 200 with the refreshed M8.1 Admin order detail/history projection. A committed mutation appends exactly one actor-attributed status-history row. Cancellation restores stock exactly once and commits the Order update, history, inventory changes, movements, and one `ORDER_STATUS_TRANSITION`/`ORDER` generalized audit row together. Forward transitions have no inventory effect. Validation, authorization, conflict, rollback, and successful no-op outcomes create no generalized audit row.
 
 ## Validation and authorization rules
 
@@ -426,7 +430,7 @@ Invalid jumps, reversals, and terminal-state mutations return `409 INVALID_ORDER
 - Checkout requires `Idempotency-Key` and persists it with a request fingerprint.
 - Wishlist `PUT` and `DELETE` are naturally idempotent.
 - Cart add is not idempotent because repeated calls increment quantity; clients disable duplicate submission or use the set-quantity endpoint after reading state.
-- Inventory adjustments and order transitions use database transactions and should accept an optional expected version or current state when the implementation introduces optimistic concurrency.
+- Inventory adjustments use database transactions. Admin order transitions additionally require `expectedStatus`; the locked authoritative state decides same-target no-op versus `ORDER_STATUS_CONFLICT`, without a version column.
 - Provider retries are limited to safe operations with bounded exponential backoff. The API does not retry an ambiguous checkout transaction at the HTTP layer; the client repeats the same idempotency key.
 
 ## Caching and HTTP behavior

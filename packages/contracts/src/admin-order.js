@@ -16,6 +16,31 @@ const normalizedSearch = z.preprocess((value) => {
 }, z.string().max(100).optional());
 
 export const adminOrderIdSchema = z.uuid();
+const adminCancellationReasonSchema = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim() : value),
+  z.string().min(1).max(240),
+);
+export const adminOrderTransitionInputSchema = z
+  .object({
+    expectedStatus: customerOrderStatusSchema,
+    toStatus: customerOrderStatusSchema,
+    reason: adminCancellationReasonSchema.optional(),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    if (input.toStatus === 'CANCELLED' && input.reason === undefined)
+      context.addIssue({
+        code: 'custom',
+        message: 'Cancellation reason is required.',
+        path: ['reason'],
+      });
+    if (input.toStatus !== 'CANCELLED' && input.reason !== undefined)
+      context.addIssue({
+        code: 'custom',
+        message: 'Reason is only allowed for cancellation.',
+        path: ['reason'],
+      });
+  });
 export const adminOrderQuerySchema = z
   .object({
     q: normalizedSearch,

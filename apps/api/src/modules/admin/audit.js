@@ -115,6 +115,19 @@ export function inventoryAuditSnapshot({
   };
 }
 
+export function orderStatusAuditSnapshot(
+  value,
+  { includeCancellationReason = false } = {},
+) {
+  return {
+    orderNumber: value.orderNumber,
+    status: value.status,
+    ...(includeCancellationReason
+      ? { cancellationReason: value.cancellationReason }
+      : {}),
+  };
+}
+
 export function promotionAuditSnapshot(value) {
   return {
     id: value.id,

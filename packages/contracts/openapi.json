@@ -3743,6 +3743,68 @@
         }
       }
     },
+    "/admin/orders/{orderId}/transitions": {
+      "post": {
+        "operationId": "adminOrderTransition",
+        "summary": "Apply one Admin order status transition",
+        "description": "Admin-only stale-write command. Locks authoritative state, permits only the explicit direct transition matrix, treats an already-reached target as a successful no-op, and atomically records actor history, cancellation restoration, movements, and generalized audit when state changes.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderId",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminOrderTransitionInput"
+              },
+              "examples": {
+                "forward": {
+                  "value": {
+                    "expectedStatus": "CONFIRMED",
+                    "toStatus": "PACKING"
+                  }
+                },
+                "cancellation": {
+                  "value": {
+                    "expectedStatus": "PACKING",
+                    "toStatus": "CANCELLED",
+                    "reason": "Customer requested cancellation before shipment"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authoritative refreshed Admin detail after a committed transition or same-target no-op",
+            "headers": {
+              "Cache-Control": { "schema": { "const": "no-store" } }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOrderDetailResponse"
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthError" },
+          "403": { "$ref": "#/components/responses/AuthError" },
+          "404": { "$ref": "#/components/responses/AuthError" },
+          "409": { "$ref": "#/components/responses/Error" },
+          "422": { "$ref": "#/components/responses/AuthError" },
+          "500": { "$ref": "#/components/responses/AuthError" }
+        }
+      }
+    },
     "/orders": {
       "get": {
         "operationId": "customerOrderList",
@@ -9373,6 +9435,41 @@
           }
         },
         "required": ["data"],
+        "additionalProperties": false
+      },
+      "AdminOrderTransitionInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "expectedStatus": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "PACKING",
+              "SHIPPING",
+              "DELIVERED",
+              "CANCELLED"
+            ]
+          },
+          "toStatus": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "PACKING",
+              "SHIPPING",
+              "DELIVERED",
+              "CANCELLED"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          }
+        },
+        "required": ["expectedStatus", "toStatus"],
         "additionalProperties": false
       },
       "CustomerOrderListResponse": {

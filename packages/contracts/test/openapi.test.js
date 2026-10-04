@@ -32,6 +32,7 @@ test('OpenAPI exposes only implemented paths and agrees on required response fie
     '/admin/inventory/{productId}/movements',
     '/admin/orders',
     '/admin/orders/{orderId}',
+    '/admin/orders/{orderId}/transitions',
     '/admin/products',
     '/admin/products/{productId}',
     '/admin/products/{productId}/archive',

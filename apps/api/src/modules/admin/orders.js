@@ -3,12 +3,28 @@ import {
   adminOrderIdSchema,
   adminOrderListResponseSchema,
   adminOrderQuerySchema,
+  adminOrderTransitionInputSchema,
 } from '@marthub/contracts';
+import { Prisma } from '@prisma/client';
 import { ApiError } from '../../middleware/platform.js';
 import {
   checkoutOrderSelect,
   projectCheckoutOrder,
 } from '../checkout/orders.js';
+import { orderStatusAuditSnapshot, writeAdminAudit } from './audit.js';
+
+export const ADMIN_ORDER_TRANSITION_MATRIX = Object.freeze({
+  PENDING: Object.freeze(['CONFIRMED', 'CANCELLED']),
+  CONFIRMED: Object.freeze(['PACKING', 'CANCELLED']),
+  PACKING: Object.freeze(['SHIPPING', 'CANCELLED']),
+  SHIPPING: Object.freeze(['DELIVERED']),
+  DELIVERED: Object.freeze([]),
+  CANCELLED: Object.freeze([]),
+});
+
+export function isAdminOrderTransitionAllowed(fromStatus, toStatus) {
+  return ADMIN_ORDER_TRANSITION_MATRIX[fromStatus]?.includes(toStatus) ?? false;
+}
 
 const queueSelect = {
   id: true,
@@ -50,6 +66,11 @@ const detailSelect = {
     orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
   },
 };
+const transitionDetailSelect = {
+  ...detailSelect,
+  userId: true,
+  cancellationReason: true,
+};
 
 function validationError(error) {
   return new ApiError(
@@ -66,6 +87,21 @@ function validationError(error) {
 function parseQuery(input) {
   const result = adminOrderQuerySchema.safeParse(input);
   if (!result.success) throw validationError(result.error);
+  return result.data;
+}
+
+function parseTransition(input) {
+  const result = adminOrderTransitionInputSchema.safeParse(input);
+  if (!result.success)
+    throw new ApiError(
+      422,
+      'VALIDATION_ERROR',
+      'Check the transition input.',
+      result.error.issues.map((issue) => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      })),
+    );
   return result.data;
 }
 
@@ -173,6 +209,123 @@ export function createAdminOrderService({ prisma }) {
       });
       if (!row) throw new ApiError(404, 'NOT_FOUND', 'Resource not found.');
       return projectDetail(row);
+    },
+
+    async transition(id, input, audit) {
+      const resolvedId = orderId(id);
+      const command = parseTransition(input);
+      return prisma.$transaction(
+        async (tx) => {
+          const reference = await tx.order.findUnique({
+            where: { id: resolvedId },
+            select: { userId: true },
+          });
+          if (!reference)
+            throw new ApiError(404, 'NOT_FOUND', 'Resource not found.');
+
+          // Customer checkout and cancellation serialize on the owning User.
+          // Keep that lock first before Order and product-sorted Inventory locks.
+          await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${reference.userId}::uuid FOR UPDATE`;
+          const locked =
+            await tx.$queryRaw`SELECT "id" FROM "orders" WHERE "id" = ${resolvedId}::uuid FOR UPDATE`;
+          if (!locked.length)
+            throw new ApiError(404, 'NOT_FOUND', 'Resource not found.');
+          const row = await tx.order.findUnique({
+            where: { id: resolvedId },
+            select: transitionDetailSelect,
+          });
+
+          if (row.status === command.toStatus) return projectDetail(row);
+          if (row.status !== command.expectedStatus)
+            throw new ApiError(
+              409,
+              'ORDER_STATUS_CONFLICT',
+              'The order status changed before this command was applied.',
+              [
+                {
+                  currentStatus: row.status,
+                  expectedStatus: command.expectedStatus,
+                },
+              ],
+            );
+          if (!isAdminOrderTransitionAllowed(row.status, command.toStatus))
+            throw new ApiError(
+              409,
+              'INVALID_ORDER_TRANSITION',
+              'This order transition is not allowed.',
+            );
+
+          const isCancellation = command.toStatus === 'CANCELLED';
+          const items = [...row.items].sort((left, right) =>
+            left.productId.localeCompare(right.productId),
+          );
+          if (isCancellation && items.length)
+            await tx.$queryRaw(Prisma.sql`
+              SELECT i."id" FROM "inventory" i
+              WHERE i."product_id" IN (${Prisma.join(items.map((item) => Prisma.sql`${item.productId}::uuid`))})
+              ORDER BY i."product_id" ASC FOR UPDATE OF i
+            `);
+
+          const [{ now }] =
+            await tx.$queryRaw`SELECT clock_timestamp() AS "now"`;
+          if (isCancellation)
+            for (const item of items) {
+              const inventory = await tx.inventory.update({
+                where: { productId: item.productId },
+                data: { quantityOnHand: { increment: item.quantity } },
+                select: { quantityOnHand: true },
+              });
+              await tx.inventoryMovement.create({
+                data: {
+                  productId: item.productId,
+                  type: 'ORDER_CANCEL_RESTORE',
+                  quantityDelta: item.quantity,
+                  quantityAfter: inventory.quantityOnHand,
+                  orderId: resolvedId,
+                  actorUserId: audit.actorUserId,
+                  reason: command.reason,
+                },
+              });
+            }
+
+          const updated = await tx.order.update({
+            where: { id: resolvedId },
+            data: {
+              status: command.toStatus,
+              ...(isCancellation
+                ? {
+                    cancellationReason: command.reason,
+                    cancelledAt: now,
+                  }
+                : {}),
+              ...(command.toStatus === 'DELIVERED' ? { deliveredAt: now } : {}),
+              statusHistory: {
+                create: {
+                  fromStatus: row.status,
+                  toStatus: command.toStatus,
+                  actorUserId: audit.actorUserId,
+                  reason: isCancellation ? command.reason : null,
+                  createdAt: now,
+                },
+              },
+            },
+            select: transitionDetailSelect,
+          });
+          await writeAdminAudit(tx, audit, {
+            action: 'ORDER_STATUS_TRANSITION',
+            entityType: 'ORDER',
+            entityId: resolvedId,
+            before: orderStatusAuditSnapshot(row, {
+              includeCancellationReason: isCancellation,
+            }),
+            after: orderStatusAuditSnapshot(updated, {
+              includeCancellationReason: isCancellation,
+            }),
+          });
+          return projectDetail(updated);
+        },
+        { isolationLevel: 'ReadCommitted' },
+      );
     },
   };
 }

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { adminOrderDetailResponseSchema } from '@marthub/contracts';
 import { ApiError } from '../../middleware/platform.js';
+import { auditContext } from './audit.js';
 import { createAdminOrderService } from './orders.js';
 
 function noQuery(req) {
@@ -25,6 +26,19 @@ export function createAdminOrderRouter({ prisma }) {
     res.json(
       adminOrderDetailResponseSchema.parse({
         data: await orders.detail(req.params.orderId),
+      }),
+    );
+  });
+
+  router.post('/:orderId/transitions', async (req, res) => {
+    noQuery(req);
+    res.json(
+      adminOrderDetailResponseSchema.parse({
+        data: await orders.transition(
+          req.params.orderId,
+          req.body,
+          auditContext(req),
+        ),
       }),
     );
   });

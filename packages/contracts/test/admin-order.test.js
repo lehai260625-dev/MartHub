@@ -9,6 +9,7 @@ import {
   adminOrderListResponseSchema,
   adminOrderQuerySchema,
   adminOrderSummarySchema,
+  adminOrderTransitionInputSchema,
 } from '../src/index.js';
 
 const id = 'b2ecb79a-b74a-4748-93dc-f2fc02b93b3d';
@@ -47,6 +48,68 @@ test('Admin order query normalizes approved search and enforces exact options', 
     { dateFrom: '2026-01-01' },
   ])
     assert.equal(adminOrderQuerySchema.safeParse(input).success, false);
+});
+
+test('Admin transition input requires stale state and exact reason policy', () => {
+  assert.deepEqual(
+    adminOrderTransitionInputSchema.parse({
+      expectedStatus: 'CONFIRMED',
+      toStatus: 'CANCELLED',
+      reason: '  Customer requested cancellation  ',
+    }),
+    {
+      expectedStatus: 'CONFIRMED',
+      toStatus: 'CANCELLED',
+      reason: 'Customer requested cancellation',
+    },
+  );
+  assert.deepEqual(
+    adminOrderTransitionInputSchema.parse({
+      expectedStatus: 'PENDING',
+      toStatus: 'CONFIRMED',
+    }),
+    { expectedStatus: 'PENDING', toStatus: 'CONFIRMED' },
+  );
+  for (const input of [
+    { toStatus: 'CONFIRMED' },
+    { expectedStatus: 'PENDING' },
+    {
+      expectedStatus: 'PENDING',
+      toStatus: 'CANCELLED',
+    },
+    {
+      expectedStatus: 'PENDING',
+      toStatus: 'CANCELLED',
+      reason: '   ',
+    },
+    {
+      expectedStatus: 'PENDING',
+      toStatus: 'CANCELLED',
+      reason: 'x'.repeat(241),
+    },
+    {
+      expectedStatus: 'PENDING',
+      toStatus: 'CONFIRMED',
+      reason: 'not allowed',
+    },
+    {
+      expectedStatus: 'PENDING',
+      toStatus: 'CONFIRMED',
+      unexpected: true,
+    },
+  ])
+    assert.equal(
+      adminOrderTransitionInputSchema.safeParse(input).success,
+      false,
+    );
+  assert.equal(
+    adminOrderTransitionInputSchema.safeParse({
+      expectedStatus: 'PENDING',
+      toStatus: 'CANCELLED',
+      reason: 'x'.repeat(240),
+    }).success,
+    true,
+  );
 });
 
 test('Admin queue/detail schemas preserve exact snapshots and reject private extras', () => {
@@ -89,7 +152,7 @@ test('Admin queue/detail schemas preserve exact snapshots and reject private ext
   assert.equal('requestFingerprint' in adminOrderDetailSchema.shape, false);
 });
 
-test('Admin order OpenAPI matches strict shared read contracts', async () => {
+test('Admin order OpenAPI matches strict shared contracts', async () => {
   const spec = JSON.parse(
     await readFile(new URL('../openapi.json', import.meta.url), 'utf8'),
   );
@@ -101,10 +164,15 @@ test('Admin order OpenAPI matches strict shared read contracts', async () => {
     spec.components.schemas.AdminOrderDetailResponse,
     z.toJSONSchema(adminOrderDetailResponseSchema),
   );
+  assert.deepEqual(
+    spec.components.schemas.AdminOrderTransitionInput,
+    z.toJSONSchema(adminOrderTransitionInputSchema),
+  );
   const list = spec.paths['/admin/orders'].get;
   const detail = spec.paths['/admin/orders/{orderId}'].get;
   assert.deepEqual(Object.keys(spec.paths['/admin/orders']), ['get']);
   assert.deepEqual(Object.keys(spec.paths['/admin/orders/{orderId}']), ['get']);
+  const transition = spec.paths['/admin/orders/{orderId}/transitions'].post;
   assert.deepEqual(list.security, [{ BearerAuth: [] }]);
   assert.deepEqual(detail.security, [{ BearerAuth: [] }]);
   assert.equal(
@@ -132,4 +200,14 @@ test('Admin order OpenAPI matches strict shared read contracts', async () => {
   assert.deepEqual(parameters.sort.enum, ['newest', 'oldest']);
   assert.equal(detail.parameters.length, 1);
   assert.equal(detail.parameters[0].name, 'orderId');
+  assert.deepEqual(transition.security, [{ BearerAuth: [] }]);
+  assert.equal(
+    transition.requestBody.content['application/json'].schema.$ref,
+    '#/components/schemas/AdminOrderTransitionInput',
+  );
+  assert.equal(
+    transition.responses[200].content['application/json'].schema.$ref,
+    '#/components/schemas/AdminOrderDetailResponse',
+  );
+  assert.equal(transition.responses[409].$ref, '#/components/responses/Error');
 });
