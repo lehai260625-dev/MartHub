@@ -170,6 +170,12 @@ export function AdminShell({ children }) {
             >
               Orders
             </Link>
+            <Link
+              href="/admin/users"
+              className="inline-flex min-h-11 items-center whitespace-nowrap font-semibold text-emerald-900 underline-offset-4 hover:underline"
+            >
+              Users
+            </Link>
           </div>
         </nav>
         <main

@@ -39,6 +39,7 @@ export * from './admin-inventory.js';
 
 export * from './admin-promotion.js';
 export * from './admin-order.js';
+export * from './admin-user.js';
 export * from './orders.js';
 export * from './my-items.js';
 export * from './reorder.js';

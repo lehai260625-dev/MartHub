@@ -113,6 +113,7 @@ The populated Reorder design below is a MartHub extension derived from product r
 | --- | --- |
 | `/admin` | Operational dashboard |
 | `/admin/users` | User management |
+| `/admin/users/[userId]` | Safe user identity/status and permitted status actions |
 | `/admin/categories` | Category management |
 | `/admin/products` | Product, price, and image management |
 | `/admin/inventory` | Stock levels and inventory movements |
@@ -121,6 +122,8 @@ The populated Reorder design below is a MartHub extension derived from product r
 | `/admin/orders/[orderId]` | Immutable order detail and complete operational history |
 
 Admin pages use a compact application shell and tables/forms optimized for repetitive operational work. They do not reuse the homepage merchandising composition.
+
+M8.3 user list URL owns q/role/status/sort/page/perPage; defaults newest/1/20 and absent filters are omitted. Search/filter/sort/page-size changes reset page; pagination preserves filters; refresh/share/back-forward restores URL state. List links to canonical userId detail; browser history returns to the prior queue. Invalid query state offers reset. Narrow screens use stacked rows. Detail shows only API-approved identity/status timestamps. SUSPENDED is labeled Disabled, mapping the existing enum. Status actions follow the DATABASE matrix; destructive disable/archive requires confirmation and a required reason. Reactivation has no reason. Self-management shows explicit forbidden feedback, server last-Admin rejection is actionable, and pending actions prevent duplicate submission. Success replaces detail with authoritative data; stale conflict states currentStatus and offers refresh/retry. Loading/empty/error/retry/accessibility behavior follows the global contract. Role changes, commerce/address browsing, counts, audit-history UI and statistics are absent.
 
 M8.1 order queue state is URL-owned through `q`, `status`, `sort`, `page`, and `perPage`. Defaults are omitted from the canonical URL (`q` and `status` absent, `sort=newest`, `page=1`, `perPage=20`). Changing search, status, sort, or page size resets page to 1; changing page preserves the other options. Refresh, shared links, and browser back/forward restore the queue from the URL. Invalid URL options show a recoverable reset state rather than silently changing meaning. Selecting an order navigates to `/admin/orders/[orderId]`; ordinary browser history returns to the prior queue URL without custom persisted filter state. On narrow screens, queue rows use an operable card/stacked alternative instead of forcing an unreadable table. Loading, empty, error/retry, populated, filter, and pagination states follow the global interaction and accessibility contract. M8.1 detail is read-only; transition controls and statistics are not introduced.
 
