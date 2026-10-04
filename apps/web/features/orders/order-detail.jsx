@@ -11,6 +11,7 @@ import { useAuth } from '../auth/auth-provider';
 import { useShopping } from '../shopping/shopping-provider';
 import { OrderSummary } from '../checkout/checkout-manager';
 import { formatVnd } from '../catalog/catalog-query';
+import { OrderCancellation } from './order-cancellation';
 
 export function PurchaseProvenance({ orderId }) {
   const auth = useAuth();
@@ -91,6 +92,12 @@ export function CustomerOrderDetail({ orderNumber }) {
       >
         Back to My Items
       </Link>
+      <Link
+        className="ml-4 font-semibold text-emerald-800 underline"
+        href="/account/orders"
+      >
+        Order history
+      </Link>
       {query.isPending ? (
         <p role="status">Loading your order…</p>
       ) : query.isError ? (
@@ -112,6 +119,10 @@ export function CustomerOrderDetail({ orderNumber }) {
       ) : (
         <>
           <p>Status: {query.data.data.status}</p>
+          <OrderCancellation
+            order={query.data.data}
+            refresh={() => query.refetch()}
+          />
           <p>
             Placed:{' '}
             <time dateTime={query.data.data.placedAt}>

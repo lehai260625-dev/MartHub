@@ -27,6 +27,9 @@ export default function AccountPage() {
         >
           Delivery addresses
         </Link>
+        <Link href="/account/orders" className="button-secondary inline-flex">
+          Order history
+        </Link>
       </div>
       <section
         className="mt-10 border-t border-neutral-200 pt-6"
