@@ -127,6 +127,26 @@ M8.3 user list URL owns q/role/status/sort/page/perPage; defaults newest/1/20 an
 
 M8.1 order queue state is URL-owned through `q`, `status`, `sort`, `page`, and `perPage`. Defaults are omitted from the canonical URL (`q` and `status` absent, `sort=newest`, `page=1`, `perPage=20`). Changing search, status, sort, or page size resets page to 1; changing page preserves the other options. Refresh, shared links, and browser back/forward restore the queue from the URL. Invalid URL options show a recoverable reset state rather than silently changing meaning. Selecting an order navigates to `/admin/orders/[orderId]`; ordinary browser history returns to the prior queue URL without custom persisted filter state. On narrow screens, queue rows use an operable card/stacked alternative instead of forcing an unreadable table. Loading, empty, error/retry, populated, filter, and pagination states follow the global interaction and accessibility contract. M8.1 detail is read-only; transition controls and statistics are not introduced.
 
+### M8.5 Admin statistics dashboard
+
+The canonical dashboard is `/admin` inside the existing protected Admin shell. It consumes only the three M8.4 statistics APIs; KPI definitions and historical/current populations remain owned by API.md and DATABASE.md. No charts, new drill-down, stock adjustments or backend statistics are added.
+
+Range controls offer Last 7 days, Last 30 days (default), Last 90 days and Custom. Relative ranges include backend-authoritative today and the preceding 6/29/89 days, never browser-clock business dates. The default statistics response supplies the authoritative calendar anchor; a default top-products response can supply it when overview fails. Presets apply immediately. Custom dates are labeled required calendar inputs with local draft state; only Apply changes the applied URL. Validate paired real dates, order, maximum 366 inclusive days and future dates when the backend anchor is available; backend validation remains authoritative. Reset applies Last 30 days.
+
+URL state uses only `range`, `from`, `to`: `/admin` is default 30d, `?range=7d` and `?range=90d` select presets, and `?range=custom&from=YYYY-MM-DD&to=YYYY-MM-DD` selects custom. Defaults are omitted. Refresh/share/back-forward restore applied state naturally without custom persistence. Invalid range or invalid/missing custom dates recover to the canonical default URL with visible recovery feedback, including backend-rejected ranges. Draft inputs do not alter the URL.
+
+Display the selected calendar range and `Asia/Ho_Chi_Minh`. Overview and top-products request the same applied dates/timezone; explicit dates derived from the default response avoid independent default-range rollover. Low-stock is independent of range, uses fixed threshold 5/limit 10 and reuses its query cache during range changes. Top-products uses fixed limit 10. Settings are not editable.
+
+Overview presents Revenue, Delivered orders, Units sold and Created orders cards plus every current status count (PENDING, CONFIRMED, PACKING, SHIPPING, DELIVERED, CANCELLED). Explain deliveredAt-based delivered sales (immutable total including shipping/discount) versus createdAt-based created orders/current-status counts. Zero is a value, not missing data. Format exact VND using the existing BigInt-compatible formatter and exact aggregate counts without Number conversion.
+
+Top-products is a read-only ranked table/list using only returned immutable product identity/image/selling-unit fields, soldQuantity and revenue in API order. Low-stock is a read-only current operational table/list with name, SKU, quantity, current price and availability; show the applied threshold and label zero explicitly OUT_OF_STOCK. Show returned full population counts separately from the maximum ten rows. Never substitute current catalog identity for historical sales.
+
+Each of overview/top-products/low-stock has its own layout-matched loading, error and retry. One failed or pending section does not block others. Retain previous dated data only when safely associated with its range and explicitly pending; mismatched previous data must not appear as a final synchronized result. Replace successful data with authoritative responses, and retry only the failed section. Empty top-products and no low-stock products have explicit messages; partial empty is valid and all zero overview/status values stay visible.
+
+Use native keyboard-operable presets with pressed state, semantic section headings/lists, labeled custom date inputs, connected validation feedback, visible focus and the global accessibility baseline. Narrow rows stack rather than widening the page; verify keyboard, axe and no horizontal page overflow at 360/768/1024/1440. No page-level loading/error replaces otherwise usable sections.
+
+M8.5 verification on 2026-10-04: approved dashboard controls, zero/empty/partial/error/loading states and natural URL/history behavior pass component and browser coverage. Dashboard and existing Admin navigation pass keyboard activation, axe WCAG A/AA and no page overflow at 360/768/1024/1440. State screenshots are saved in ignored test-results; desktop/mobile populated screenshots were visually inspected. Detailed check counts and completion evidence are owned by PLAN.md.
+
 ## Global Header and Navigation
 
 ### Desktop: Two Tiers

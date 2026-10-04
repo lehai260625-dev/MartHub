@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { mockAdminSession } from './helpers/admin-session.js';
+import { statisticsFixture } from '../apps/web/test/fixtures/statistics.js';
 
 const admin = {
   id: 'b2ecb79a-b74a-4748-93dc-f2fc02b93b3d',
@@ -16,11 +17,18 @@ test('authorized admin shell is accessible and responsive', async ({
   page,
 }) => {
   await mockAdminSession(page, admin);
+  await page.route('**/api/v1/admin/statistics/**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(statisticsFixture(route.request().url())),
+    }),
+  );
 
   await page.goto('/admin');
 
   await expect(
-    page.getByRole('heading', { name: 'Admin workspace' }),
+    page.getByRole('heading', { name: 'Statistics dashboard' }),
   ).toBeVisible();
   await expect(
     page.getByRole('navigation', { name: 'Admin navigation' }),
