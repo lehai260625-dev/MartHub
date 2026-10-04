@@ -118,8 +118,11 @@ The populated Reorder design below is a MartHub extension derived from product r
 | `/admin/inventory` | Stock levels and inventory movements |
 | `/admin/promotions` | Homepage promotional content |
 | `/admin/orders` | Order queue and status operations |
+| `/admin/orders/[orderId]` | Immutable order detail and complete operational history |
 
 Admin pages use a compact application shell and tables/forms optimized for repetitive operational work. They do not reuse the homepage merchandising composition.
+
+M8.1 order queue state is URL-owned through `q`, `status`, `sort`, `page`, and `perPage`. Defaults are omitted from the canonical URL (`q` and `status` absent, `sort=newest`, `page=1`, `perPage=20`). Changing search, status, sort, or page size resets page to 1; changing page preserves the other options. Refresh, shared links, and browser back/forward restore the queue from the URL. Invalid URL options show a recoverable reset state rather than silently changing meaning. Selecting an order navigates to `/admin/orders/[orderId]`; ordinary browser history returns to the prior queue URL without custom persisted filter state. On narrow screens, queue rows use an operable card/stacked alternative instead of forcing an unreadable table. Loading, empty, error/retry, populated, filter, and pagination states follow the global interaction and accessibility contract. M8.1 detail is read-only; transition controls and statistics are not introduced.
 
 ## Global Header and Navigation
 
@@ -324,4 +327,3 @@ The UI finish gate must record screenshots and interaction evidence for these ca
 | Admin shell | Yes | Yes | Yes | Yes | Tables remain operable; narrow-screen alternative; validation/error states; no destructive-action ambiguity |
 
 Across all rows, verify keyboard-only operation, focus visibility, accessible names, automated accessibility checks, nonblank rendered media, text truncation, and absence of incoherent overlap. Any failed required check prevents the corresponding implementation task from being marked complete.
-

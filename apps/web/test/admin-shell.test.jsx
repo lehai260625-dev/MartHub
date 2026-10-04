@@ -109,6 +109,10 @@ test('authorized admin sees the responsive shell only after the API authorizes i
     'href',
     '/admin',
   );
+  expect(screen.getByRole('link', { name: 'Orders' })).toHaveAttribute(
+    'href',
+    '/admin/orders',
+  );
   expect(api).toHaveBeenCalledWith(
     '/admin',
     expect.objectContaining({ schema: expect.anything() }),
