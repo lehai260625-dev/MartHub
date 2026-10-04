@@ -3629,6 +3629,266 @@
         }
       }
     },
+    "/admin/statistics/overview": {
+      "get": {
+        "operationId": "adminStatisticsOverview",
+        "summary": "Read Admin overview statistics",
+        "description": "Admin-only/no-store. Paired YYYY-MM-DD dates, default DB-today minus 29 days through DB-today in Asia/Ho_Chi_Minh only, at most 366 inclusive days, no future dates. Half-open midnight range. Revenue sums immutable total for current DELIVERED orders by deliveredAt; units and delivered count use that population. Created count and all six current status counts use createdAt range. All aggregates are exact decimal strings.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "timezone",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["Asia/Ho_Chi_Minh"],
+              "default": "Asia/Ho_Chi_Minh"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Safe statistics projection; empty sums/counts are decimal zero strings and lists are empty.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatisticsOverviewResponse"
+                },
+                "example": {
+                  "data": {
+                    "range": {
+                      "from": "2024-01-01",
+                      "to": "2024-01-01",
+                      "timezone": "Asia/Ho_Chi_Minh",
+                      "startInclusive": "2023-12-31T17:00:00.000Z",
+                      "endExclusive": "2024-01-01T17:00:00.000Z"
+                    },
+                    "revenue": "0",
+                    "deliveredOrderCount": "0",
+                    "unitsSold": "0",
+                    "createdOrderCount": "0",
+                    "statusCounts": {
+                      "PENDING": "0",
+                      "CONFIRMED": "0",
+                      "PACKING": "0",
+                      "SHIPPING": "0",
+                      "DELIVERED": "0",
+                      "CANCELLED": "0"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "422": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "500": {
+            "$ref": "#/components/responses/AuthError"
+          }
+        }
+      }
+    },
+    "/admin/statistics/top-products": {
+      "get": {
+        "operationId": "adminStatisticsTopProducts",
+        "summary": "Read Admin top-products statistics",
+        "description": "Admin-only/no-store. Same paired-date/default/timezone/window rules as overview. Current DELIVERED sales by deliveredAt. Group productId, sum quantity and lineTotal. Rank quantity DESC,revenue DESC,productId ASC. Identity from immutable latest eligible snapshot by deliveredAt DESC,orderId DESC, never current catalog. totalProducts counts before limit; no pagination.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "timezone",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["Asia/Ho_Chi_Minh"],
+              "default": "Asia/Ho_Chi_Minh"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Safe statistics projection; empty sums/counts are decimal zero strings and lists are empty.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatisticsTopProductsResponse"
+                },
+                "example": {
+                  "data": {
+                    "range": {
+                      "from": "2024-01-01",
+                      "to": "2024-01-01",
+                      "timezone": "Asia/Ho_Chi_Minh",
+                      "startInclusive": "2023-12-31T17:00:00.000Z",
+                      "endExclusive": "2024-01-01T17:00:00.000Z"
+                    },
+                    "limit": 10,
+                    "totalProducts": "0",
+                    "items": []
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "422": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "500": {
+            "$ref": "#/components/responses/AuthError"
+          }
+        }
+      }
+    },
+    "/admin/statistics/low-stock": {
+      "get": {
+        "operationId": "adminStatisticsLowStock",
+        "summary": "Read Admin low-stock statistics",
+        "description": "Admin-only/no-store. Current operational inventory, no date query. ACTIVE non-archived products with public active category ancestry and current price. Include quantity <= threshold, including zero. Sort quantity ASC,name ASC,productId ASC. totalProducts is exact decimal count before limit. No pagination.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "threshold",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000,
+              "default": 5
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Safe statistics projection; empty sums/counts are decimal zero strings and lists are empty.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatisticsLowStockResponse"
+                },
+                "example": {
+                  "data": {
+                    "threshold": 5,
+                    "limit": 10,
+                    "totalProducts": "0",
+                    "items": []
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "422": {
+            "$ref": "#/components/responses/AuthError"
+          },
+          "500": {
+            "$ref": "#/components/responses/AuthError"
+          }
+        }
+      }
+    },
     "/admin/users": {
       "get": {
         "operationId": "adminUserList",
@@ -9408,6 +9668,313 @@
           }
         },
         "required": ["data", "meta"],
+        "additionalProperties": false
+      },
+      "StatisticsOverviewResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "range": {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "to": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "const": "Asia/Ho_Chi_Minh"
+                  },
+                  "startInclusive": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "endExclusive": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "from",
+                  "to",
+                  "timezone",
+                  "startInclusive",
+                  "endExclusive"
+                ],
+                "additionalProperties": false
+              },
+              "revenue": {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)$"
+              },
+              "deliveredOrderCount": {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)$"
+              },
+              "unitsSold": {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)$"
+              },
+              "createdOrderCount": {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)$"
+              },
+              "statusCounts": {
+                "type": "object",
+                "properties": {
+                  "PENDING": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)$"
+                  },
+                  "CONFIRMED": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)$"
+                  },
+                  "PACKING": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)$"
+                  },
+                  "SHIPPING": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)$"
+                  },
+                  "DELIVERED": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)$"
+                  },
+                  "CANCELLED": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)$"
+                  }
+                },
+                "required": [
+                  "PENDING",
+                  "CONFIRMED",
+                  "PACKING",
+                  "SHIPPING",
+                  "DELIVERED",
+                  "CANCELLED"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "range",
+              "revenue",
+              "deliveredOrderCount",
+              "unitsSold",
+              "createdOrderCount",
+              "statusCounts"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": ["data"],
+        "additionalProperties": false
+      },
+      "StatisticsTopProductsResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "range": {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "to": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "const": "Asia/Ho_Chi_Minh"
+                  },
+                  "startInclusive": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "endExclusive": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "from",
+                  "to",
+                  "timezone",
+                  "startInclusive",
+                  "endExclusive"
+                ],
+                "additionalProperties": false
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50
+              },
+              "totalProducts": {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)$"
+              },
+              "items": {
+                "maxItems": 50,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "productId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "sku": {
+                      "type": "string"
+                    },
+                    "productName": {
+                      "type": "string"
+                    },
+                    "imageUrl": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "sellingUnit": {
+                      "type": "string"
+                    },
+                    "soldQuantity": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9]\\d*)$"
+                    },
+                    "revenue": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9]\\d*)$"
+                    }
+                  },
+                  "required": [
+                    "productId",
+                    "sku",
+                    "productName",
+                    "imageUrl",
+                    "sellingUnit",
+                    "soldQuantity",
+                    "revenue"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": ["range", "limit", "totalProducts", "items"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["data"],
+        "additionalProperties": false
+      },
+      "StatisticsLowStockResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "threshold": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50
+              },
+              "totalProducts": {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)$"
+              },
+              "items": {
+                "maxItems": 50,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "productId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "sku": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "currentPrice": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$"
+                    },
+                    "availability": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": ["IN_STOCK", "OUT_OF_STOCK"]
+                        },
+                        "canAddToCart": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["status", "canAddToCart"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "productId",
+                    "sku",
+                    "name",
+                    "quantity",
+                    "currentPrice",
+                    "availability"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": ["threshold", "limit", "totalProducts", "items"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["data"],
         "additionalProperties": false
       },
       "AdminUserStatusInput": {

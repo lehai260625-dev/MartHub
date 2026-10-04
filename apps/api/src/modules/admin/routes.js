@@ -7,6 +7,7 @@ import { createAdminInventoryRouter } from './inventory-routes.js';
 import { createAdminPromotionRouter } from './promotion-routes.js';
 import { createAdminOrderRouter } from './order-routes.js';
 import { createAdminUserRouter } from './user-routes.js';
+import { createAdminStatisticsRouter } from './statistics-routes.js';
 
 export function createAdminRouter({ prisma, config, media }) {
   const router = Router();
@@ -26,6 +27,7 @@ export function createAdminRouter({ prisma, config, media }) {
   router.use('/promotions', createAdminPromotionRouter({ prisma, media }));
   router.use('/orders', createAdminOrderRouter({ prisma }));
   router.use('/users', createAdminUserRouter({ prisma }));
+  router.use('/statistics', createAdminStatisticsRouter({ prisma }));
 
   return router;
 }
