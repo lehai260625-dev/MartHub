@@ -13,7 +13,7 @@ This document is the source of truth for implementation order, status, dependenc
 
 - Approved scope and architecture decisions: complete.
 - Latest maintenance: current-main homepage rail feedback accessibility fix is COMPLETED; GitHub Actions run 37272219621 and its verify job succeeded on current main 7d3ad672cf5c63c42b427b080e90abc947d3f14c.
-- Active implementation milestone: M10; M10.1-M10.5 are COMPLETED. M10.5 passes the approved production config, CSP, retention, telemetry and isolated TLS smoke gates; M10.6-M10.7 remain NOT STARTED.
+- Active implementation milestone: M10; M10.1-M10.6 are COMPLETED. M10.7 remains NOT STARTED; M10 milestone final acceptance/handoff is not yet complete.
 - Latest completed milestone: M9 Homepage composition and responsive finish, after final UI finish-gate verification on 2026-10-05. Latest completed task: M10.5 on 2026-10-05; M1-M9 are COMPLETED, M10 remains IN PROGRESS.
 - Implementation must proceed one task at a time and must not skip dependencies.
 
@@ -520,7 +520,7 @@ Objective: close cross-cutting quality gaps and prove that the portfolio deploym
 | M10.3 | [x]    | Run security and privacy review                                        | M10.1       | No critical finding, secret, unsafe token storage, authorization gap, or sensitive log remains | Dependency scan, static review, abuse tests         |
 | M10.4 | [x]    | Run accessibility, SEO, and performance review                         | M9.6, M10.2 | Critical flows meet WCAG AA checks; metadata is valid; baseline-only performance evidence and material-regression review pass | axe/manual keyboard, Lighthouse, bundle/image audit |
 | M10.5 | [x]    | Finalize production environment, migrations, health, and observability | M10.1       | Production config fails fast; migrations, request IDs, redaction, health, and approved deployment telemetry work | Production build and smoke tests                    |
-| M10.6 | [ ]    | Verify backup, restore, and operational runbook                        | M10.5       | A documented restore rehearsal succeeds and rollback steps are actionable                      | Clean restore and data reconciliation               |
+| M10.6 | [x]    | Verify backup, restore, and operational runbook                        | M10.5       | A documented restore rehearsal succeeds and rollback steps are actionable                      | Clean restore and data reconciliation               |
 | M10.7 | [ ]    | Finalize Postman collection and portfolio handoff                      | M10.3-M10.6 | Public/customer/admin examples and environment setup are current and safe                      | Collection run and clean-clone walkthrough          |
 
 Milestone acceptance: customer flow `register -> login -> browse/search -> cart -> COD checkout -> order detail` and admin flow `login -> product -> inventory -> order processing` pass in production-like configuration. Milestone DoD: common DoD plus green CI, deploy smoke test, security clearance, accessibility evidence, and recovery rehearsal.
@@ -798,6 +798,153 @@ and verified by the deployment operator; no real infrastructure deployment is
 claimed. Acceptance and applicable common DoD pass: M10.5 COMPLETED. M10 remains
 IN PROGRESS; M10.6/M10.7 NOT STARTED. No new owner decision, commit, push or Git
 remote/config change. Stop here.
+
+### M10.6 preflight / recovery audit (2026-10-05)
+
+BLOCKED before implementation: M10.5 is COMPLETED, but required current-main CI
+is not yet green. Initial worktree is clean on main
+`d4b810ed4307c6a704851690a0ff5e47997b1ec3` (M10.5 production readiness).
+[Actions run 37323449765](https://github.com/lehai260625-dev/MartHub/actions/runs/37323449765)
+and verify job are IN PROGRESS on that exact HEAD at the last check: migration,
+lint, format and unit steps succeed; integration is running, build/E2E/isolated
+production smoke remain pending. Prior-commit success/local M10.5 evidence is not
+substituted for this precondition. No failed CI conclusion is asserted.
+
+Read latest AGENTS/PLAN and the complete M10.6 attachment; audit README,
+ARCHITECTURE, DATABASE, existing production/TLS smoke and guarded E2E helper,
+Prisma configuration/release command, 15 migration directories and ignore rules.
+The deployment-patterns and security-review skills inform this read-only audit;
+their generic cloud/down-migration examples do not override approved JavaScript,
+native PostgreSQL, private API or forward-only migration boundaries.
+
+| Recovery surface | Existing contract / remaining M10.6 work after green CI |
+| --- | --- |
+| Tool/format/scope | User authorizes native pg_dump plus pg_restore/psql, not an application pseudo-backup. No backup script/runbook exists. Document a native logical format and complete schema/data/migration-metadata/index/constraint/trigger/enum scope; exclude env/JWT/Cloudinary/application credentials outside DB. |
+| Targets/safety | User requires separate fresh isolated source and empty target, never production/developer residue. Existing test helper validates opt-in/loopback/test naming/no URL overrides. Rehearsal must add explicit distinct-target/empty-target checks and have no production default or ambiguous destructive operation. No DB is created/reset during this preflight. |
+| Migrations/roles | Current release command is prisma migrate deploy; SQL migrations own partial indexes, checks, exclusions and immutable/append-only triggers. DATABASE requires expand-and-contract, runtime DML and separate migration credentials. Rehearsal must preserve migration history, document restore ownership/grant assumptions and prove restored-current deploy is no-op; no invented automatic down migrations. |
+| Config/secrets/media | Secrets are separately injected, not in repository backups. DB still contains sensitive hashes/session lineage/addresses/order snapshots; never print row data or credentials. Cloudinary binary assets are external to PostgreSQL; restored metadata/cleanup state is not proof of provider asset recovery. |
+| Recovery/rollback | User defines application rollback first when schema-compatible, not automatic DB restore on app failure. Corruption recovery stops writes, preserves the affected DB where possible, restores separately, reconciles and only then promotes. No automatic promotion, infrastructure deployment or data-loss SLA is authorized. |
+| Reconciliation | User explicitly requires matched migration state, critical counts/identities/roles/status, exact BIGINT values, stock, immutable orders/items/history, movements/audits/media cleanup, schema objects and post-restore enforcement, plus readiness/API read. Existing unit/integration evidence is not a substitute for a real restored DB. Deterministic comparisons and safe aggregate evidence remain to implement/run. |
+| Storage/retention/objectives | User requires restricted sensitive-backup storage, operator-owned encrypted transport/storage, ignored/uncommitted artifacts and RPO/RTO UNDEFINED unless already approved. PLAN does not require a new numeric retention/SLA policy; none is invented. |
+
+No new owner-level policy decision is identified by this preliminary audit; CI
+completion is the concrete blocker. No backup/restore harness, runbook, fixture,
+production code, schema or database changes are made, and no rehearsal/test/build
+is run. Only this PLAN status/audit record changes; git diff --check passes.
+M10.6 remains BLOCKED until exact current-main verify succeeds; M10.7 NOT STARTED.
+No commit, push or Git remote/config change. Stop here.
+
+M10.6 resume preflight (2026-10-05): preserve the audit above. The owner reports
+run 37323449765 green, but repeated read-only GitHub CLI checks still return
+`in_progress`, with no conclusion, on exact HEAD
+`d4b810ed4307c6a704851690a0ff5e47997b1ec3`. The verify job now passes integration
+and build; E2E is still reported in progress and isolated production TLS smoke
+pending. This discrepancy does not establish the required completed/success
+precondition. M10.6 remains BLOCKED pending confirmed exact-HEAD CI success;
+no database, backup artifact, harness or runbook is created. Existing changes
+are preserved and M10.7 remains NOT STARTED. No new owner decision is required.
+
+M10.6 continuation: run 37323449765 and verify are now completed/success on
+exact HEAD d4b810ed4307c6a704851690a0ff5e47997b1ec3, confirmed via GitHub CLI.
+The CI blocker above is historical and resolved. Continue only the remaining
+isolated recovery rehearsal and operational documentation. M10.6 IN PROGRESS;
+M10.7 NOT STARTED.
+
+### M10.6 completion evidence (2026-10-05)
+
+Historical preflight/blocker notes above are retained. Current-main Actions run
+37323449765 and verify completed/success on exact HEAD d4b810e; continuation
+implemented only the remaining M10.6 recovery harness and runbook. No production,
+developer or user database was accessed/reset. No production/API/schema/business
+semantics changed, and no migration or dependency was added.
+
+`npm run test:restore-rehearsal` requires NODE_ENV=test, explicit rehearsal opt-in,
+two bounded M10.6 loopback test URLs on one identified cluster/owner, distinct
+source/target names and both databases absent. It creates both from template0,
+checks empty objects before migration/restore, applies all 15 current migrations,
+uses the approved catalog seed and an atomic deterministic representative fixture.
+Existing targets, remote/production/default URLs, aliases, oversized names and
+query/hash overrides are refused; no drop/truncate/clean command exists. Native
+child PG settings replace inherited overrides; secrets are not passed in argv.
+Artifact directories are ignored and Windows current-user-only ACL restricted
+(POSIX implementation uses 0700/0600). DBs/artifacts remain local for inspection;
+they are not tracked, uploaded or automatically promoted.
+
+Native PostgreSQL server/pg_dump/pg_restore 18.4 clean rehearsal passes on the
+fourth, final and verified source/target pairs, with the final hardened harness
+rerun on NEW `marthub_m106_verified_source_test` and
+`marthub_m106_verified_target_test` at 127.0.0.1:15432. Custom-format full logical
+backup plus exit-on-error, single-transaction, no-owner/no-acl restore succeeds.
+Latest archive is 85,718 bytes, SHA256
+`73626c46da5877c9059fbc0bd1620e8a76698d146030a8e2a582fc7957727746`, in ignored
+`.cache/restore-rehearsal-Lb2QT5/`; safe counts/hashes/version report is adjacent.
+The independent prior complete rerun produced an 85,705-byte archive. Physical
+archive/migration execution timestamps may differ between runs; business fixture
+identities/data are deterministic and every source-to-target comparison passes.
+
+All 21 public table counts and full-row SHA256 digests match, including Prisma
+metadata/checksums and sensitive hash/lineage fields omitted by ordinary safe
+application projections. Counts: users 4 (Admin/Customer, active/suspended/archived),
+sessions 2 (revoked parent/active child), throttle 1, address 1, categories 6,
+products 11, prices 12, inventories 11, product image 1, promotions 6, media
+cleanup 4 (product/promotion, pending/failed/completed), cart/items 1/1,
+wishlist/items 1/1, orders/items 6/6, deterministic history 19, movements 8 and
+generalized audits 13. Fixtures cover every order status and complete allowed
+history chains, attributed reasons, one cancellation restoration, stock 95,
+immutable item identity distinct from current catalog, and exact VND
+9007199254740993 with delivered-order total 9007199254770993. Hashes compare
+all persisted columns, not just selected assertions or Number-coerced money.
+
+Schema reconciliation matches 215 columns/defaults, 247 named validated constraints,
+81 indexes, 7 enabled noninternal triggers, 7 application functions, 31 enum
+labels and 3 extensions. Fourteen rolled-back probes prove order snapshots,
+items/history/movements/audits remain immutable/append-only on UPDATE and DELETE,
+prices reject mutation/overlap, stock cannot become negative and an additional
+active cart fails uniqueness. Migration names/checksums/completed state match
+current files; restored Prisma validate passes and migrate deploy reports
+No pending migrations. Full data/schema digests remain unchanged after this
+no-op, invariant probes and application reads. Real Express/Prisma restored
+readiness and HTTP product read pass with exact decimal-string VND and zero
+error-level application logs. This read smoke is not a deployed runtime-grant,
+TLS/edge, Cloudinary binary recovery or complete disaster journey certification.
+
+Harness defects found during development, not product regressions: first synthetic
+media cleanup fixture omitted its required deleted-image identity and failed-state
+attempt count; corrected to existing constraints. Initial raw schema comparison
+flagged PG18's equivalent varchar-array-to-text CHECK deparse rewriting for two
+Admin audit allowlists. Narrow canonicalization preserves names, operators,
+members and validation flags; a regression proves changed allowlists still fail
+comparison. Every table digest already matched at that diagnostic stage. No
+production constraint/assertion was weakened. Failed pairs remain untouched;
+rerunning against an existing successful pair is explicitly verified to fail at
+safety_guards before any DB creation/mutation.
+
+Eight focused guard/redaction/digest/canonicalization/rollback unit tests pass.
+Root lint (including web), scoped Prettier, JavaScript syntax and git diff checks
+pass. Final helper changes are followed by the verified clean rehearsal above.
+No unexplained native/application error or sensitive row/credential output is
+introduced. Existing LF/CRLF notices are non-failing. Full unit/E2E/build suites
+are not blindly rerun: only test harness/docs/package command changed; green
+exact-HEAD production verification is retained, not claimed for local changes.
+The locally started owned isolated PostgreSQL test cluster is stopped afterwards.
+
+[BACKUP_RESTORE.md](BACKUP_RESTORE.md), linked from README, provides verified
+native command templates, private artifact naming/integrity/error handling,
+trusted-source/version/extension and NEW empty target checks, separate migration
+ownership/runtime grants, reconciliation and application smoke, external media
+and secret separation. App failure with compatible schema rolls back the app
+first, never automatically the DB; corruption recovery stops writes/schedulers,
+preserves the affected DB, restores separately, reconciles and requires sign-off
+before promotion. No down migrations, infrastructure deployment or automatic
+cutover is added. Encryption/storage/retention remain deployment-operator-owned;
+RPO/RTO remain UNDEFINED. The deployment-patterns/security-review skills informed
+these safety/redaction boundaries without broadening scope.
+
+Gate PASS: clean native restore, automated reconciliation, no-op migration and
+restored application smoke succeed; actionable recovery/rollback procedure and
+applicable common DoD are satisfied. M10.6 COMPLETED; M10 remains IN PROGRESS,
+M10.7 NOT STARTED. No new owner decision, commit, push or Git config/remote change.
+Stop here.
 
 ## Test strategy summary
 

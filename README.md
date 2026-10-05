@@ -158,6 +158,12 @@ npm run db:seed --workspace @marthub/api
 
 The optional catalog seed adds original MartHub demo categories, products, exact VND prices, stock, and promotions. Repeated runs leave existing rows unchanged. Demo media remains empty until original assets are managed through the approved media flow.
 
+Backup/recovery: [the operational runbook](docs/BACKUP_RESTORE.md) documents native
+PostgreSQL logical backup, NEW-target restore/reconciliation, credential/grant
+handling and app-first rollback. `npm run test:restore-rehearsal` requires explicit
+guarded source/target test URLs; it never uses your normal `DATABASE_URL`, resets
+an existing DB or performs a production cutover. Backup artifacts remain ignored.
+
 The integration command is destructive only to the configured dedicated test
 database: its database name must contain the word `test`. It runs test files
 sequentially and restores the migrated deterministic seed baseline before each
