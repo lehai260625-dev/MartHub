@@ -323,9 +323,12 @@
   overflow: hidden;
 }
 .home-product-rail .action-feedback {
-  height: 3.75rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  /* Reserve five 20px lines for current safe copy at the 160px minimum card.
+     A live status is not a scroll region; longer copy may grow, never clip. */
+  min-height: calc(5 * var(--text-sm--line-height));
+  line-height: var(--text-sm--line-height);
+  overflow-wrap: anywhere;
+  overflow: visible;
 }
 .home-product-rail .wishlist-feedback {
   max-width: calc(var(--home-card-width) - 16px);

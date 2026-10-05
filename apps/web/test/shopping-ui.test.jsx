@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { ApiClientError } from '../lib/api/core';
 import { ProductCard } from '../features/catalog/product-card';
 import { ShoppingHeader } from '../features/shopping/shopping-header';
@@ -74,6 +76,60 @@ beforeEach(() => {
 });
 
 describe('M5.5 shopping interactions', () => {
+  it('retains a non-scrollable reserved live status across cart success and error', async () => {
+    let fail = false;
+    const request = vi.fn((path, options = {}) => {
+      if (path === '/cart' && !options.method)
+        return Promise.resolve(emptyCart);
+      if (path === '/wishlist') return Promise.resolve(emptyWishlist);
+      if (path === '/cart/items')
+        return fail
+          ? Promise.reject(new ApiClientError('Private server detail'))
+          : Promise.resolve(cartWithItem);
+      throw new Error(`Unexpected ${path}`);
+    });
+    const view = mount(
+      <ul className="home-product-rail">
+        <li>
+          <ProductCard product={product} />
+        </li>
+      </ul>,
+      request,
+    );
+    const feedback = view.container.querySelector('.action-feedback');
+    const add = screen.getByRole('button', { name: /add .* to cart/i });
+    expect(feedback).toBeEmptyDOMElement();
+    await waitFor(() => expect(add).toBeEnabled());
+    fireEvent.click(add);
+    await waitFor(() => expect(feedback).toHaveTextContent('1 added to cart.'));
+    await waitFor(() => expect(add).toBeEnabled());
+    fail = true;
+    fireEvent.click(add);
+    await waitFor(() =>
+      expect(feedback).toHaveTextContent(
+        'Could not add to cart. Please try again.',
+      ),
+    );
+    expect(view.container.querySelector('.action-feedback')).toBe(feedback);
+    expect(feedback).toHaveAttribute('role', 'status');
+    expect(feedback).toHaveAttribute('aria-live', 'polite');
+    expect(feedback).not.toHaveAttribute('tabindex');
+    // jsdom cannot measure wrapping/heights; guard the footprint policy here.
+    // The browser regression measures full text fit and unchanged card height.
+    const css = readFileSync(resolve('app/homepage.css'), 'utf8');
+    const rule = css.match(
+      /\.home-product-rail \.action-feedback\s*\{([^}]+)\}/,
+    )[1];
+    expect(rule).toContain('min-height: calc(5 * var(--text-sm--line-height))');
+    expect(rule).toContain('line-height: var(--text-sm--line-height)');
+    expect(rule).toContain('overflow: visible');
+    expect(rule).toContain('overflow-wrap: anywhere');
+    expect(rule).not.toMatch(/(?:^|[;\n])\s*(?:height|max-height):/);
+    expect(rule).not.toMatch(
+      /overflow(?:-[xy])?:\s*(?:auto|scroll|hidden|clip)/,
+    );
+  });
+
   it('routes guest cart and wishlist intent through login with the safe current URL', () => {
     mount(<ProductCard product={product} />, vi.fn(), {
       status: 'guest',

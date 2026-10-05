@@ -318,6 +318,14 @@ test('equal media/cards, full exact prices, missing/broken images and action fee
   );
   await expect(first).toContainText('9.007.199.254.740.993');
   await expect(first).toContainText('9.223.372.036.854.775.807');
+  const feedback = first.locator('.action-feedback');
+  await expect(feedback).toHaveAttribute('role', 'status');
+  await expect(feedback).toHaveAttribute('aria-live', 'polite');
+  await expect(feedback).not.toHaveAttribute('tabindex');
+  await expect(feedback).toHaveCSS('overflow-x', 'visible');
+  await expect(feedback).toHaveCSS('overflow-y', 'visible');
+  await expect(feedback).toHaveCSS('line-height', '20px');
+  const feedbackHeight = (await feedback.boundingBox()).height;
   await expect(
     cards.nth(3).getByRole('button', { name: /out of stock/ }),
   ).toBeDisabled();
@@ -333,6 +341,22 @@ test('equal media/cards, full exact prices, missing/broken images and action fee
   await expect(first.locator('.action-feedback')).toContainText(
     'Could not add',
   );
+  await expect(feedback).toHaveText('Could not add to cart. Please try again.');
+  const feedbackGeometry = await feedback.evaluate((node) => ({
+    clientHeight: node.clientHeight,
+    scrollHeight: node.scrollHeight,
+    clientWidth: node.clientWidth,
+    scrollWidth: node.scrollWidth,
+  }));
+  expect(feedbackGeometry.scrollHeight).toBeLessThanOrEqual(
+    feedbackGeometry.clientHeight,
+  );
+  expect(feedbackGeometry.scrollWidth).toBeLessThanOrEqual(
+    feedbackGeometry.clientWidth,
+  );
+  expect(
+    Math.abs((await feedback.boundingBox()).height - feedbackHeight),
+  ).toBeLessThan(1);
   expect(
     Math.abs((await first.boundingBox()).height - heights[0]),
   ).toBeLessThan(1);
