@@ -1,12 +1,14 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { mockAdminSession } from './helpers/admin-session.js';
+import { waitForSettledUi } from './helpers/settled-ui.js';
 import {
   statisticsAdmin,
   statisticsFixture,
 } from '../apps/web/test/fixtures/statistics.js';
 
 async function accessible(page, testInfo, state) {
+  await waitForSettledUi(page);
   expect(
     await page.evaluate(
       // eslint-disable-next-line no-undef -- Browser execution.

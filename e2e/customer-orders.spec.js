@@ -65,6 +65,9 @@ test('owned order history URL state and confirmed cancellation use authoritative
         slug: `ord-${suffix}`,
         name: 'Current name',
         sellingUnit: 'each',
+        prices: {
+          create: { price: 120000n, startsAt: new Date('2020-01-01') },
+        },
         inventory: { create: { quantityOnHand: 5 } },
       },
     });

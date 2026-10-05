@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { waitForSettledUi } from './helpers/settled-ui.js';
 
 const id = (n) => `da7a0000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const product = (n, available = true) => ({
@@ -124,6 +125,7 @@ async function fixture(page, role = 'guest') {
   return privateRequests;
 }
 async function audit(page, name) {
+  await waitForSettledUi(page);
   expect(
     await page.evaluate(
       () =>

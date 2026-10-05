@@ -16,7 +16,7 @@
     "format:check": "prettier --check apps packages scripts e2e *.js package.json README.md .github",
     "test": "npm test --workspace @marthub/contracts && npm test --workspace @marthub/api && npm test --workspace @marthub/web",
     "test:integration": "npm run test:integration --workspace @marthub/api",
-    "test:e2e": "playwright test",
+    "test:e2e": "node scripts/run-e2e.js",
     "build": "npm run build --workspace @marthub/contracts && node scripts/check-js.js && npm run build --workspace @marthub/web",
     "db:validate": "npm run db:validate --workspace @marthub/api",
     "db:generate": "npm run db:generate --workspace @marthub/api",

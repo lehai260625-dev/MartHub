@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { waitForSettledUi } from './helpers/settled-ui.js';
 
 const user = {
   id: 'b2ecb79a-b74a-4748-93dc-f2fc02b93b3d',
@@ -45,6 +46,7 @@ const session = (role = 'CUSTOMER') => ({
 });
 
 async function audit(page, name) {
+  await waitForSettledUi(page);
   expect(
     await page.evaluate(
       () =>
@@ -149,6 +151,9 @@ test('guest search, truthful contexts, native focus order and footer routes work
   await expect(
     page.getByRole('banner').getByLabel('Search products'),
   ).toHaveValue('mug');
+  await expect(
+    page.getByRole('banner').getByText('Đăng nhập để chọn địa chỉ'),
+  ).toBeVisible();
   await audit(page, 'guest');
 });
 

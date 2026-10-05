@@ -3,8 +3,10 @@ import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { createDatabase } from '../apps/api/src/db/client.js';
 import { validateDatabaseUrl } from '../apps/api/src/config/env.js';
+import { waitForSettledUi } from './helpers/settled-ui.js';
 
 async function audit(page) {
+  await waitForSettledUi(page);
   expect(
     await page.evaluate(
       () =>
