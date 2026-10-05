@@ -12,9 +12,10 @@ This document is the source of truth for implementation order, status, dependenc
 ## Current state
 
 - Approved scope and architecture decisions: complete.
-- Latest maintenance: current-main homepage rail feedback accessibility fix is COMPLETED; GitHub Actions run 37272219621 and its verify job succeeded on current main 7d3ad672cf5c63c42b427b080e90abc947d3f14c.
-- Active implementation milestone: M10; M10.1-M10.6 are COMPLETED. M10.7 remains NOT STARTED; M10 milestone final acceptance/handoff is not yet complete.
-- Latest completed milestone: M9 Homepage composition and responsive finish, after final UI finish-gate verification on 2026-10-05. Latest completed task: M10.5 on 2026-10-05; M1-M9 are COMPLETED, M10 remains IN PROGRESS.
+- Historical M9 maintenance: homepage rail feedback accessibility fix is COMPLETED; Actions run 37272219621/verify succeeded on its then-current main 7d3ad672cf5c63c42b427b080e90abc947d3f14c.
+- Active implementation milestone: none. M10.1-M10.7 and the M0-M10 roadmap are COMPLETED; no further milestone is authorized.
+- Latest completed milestone: M10 Testing, security, and production readiness. Latest completed task: M10.7 on 2026-10-05, after portfolio handoff and final milestone audit.
+- Latest verified current-main CI: run 37328632072/verify PASS on HEAD 42a39e0c6cce3886d7c053eae28e8fdd59a31fe1. M10.7 working-tree changes passed the local checks recorded below; they have not been committed/pushed or run in remote CI.
 - Implementation must proceed one task at a time and must not skip dependencies.
 
 ## Detailed documents
@@ -24,6 +25,7 @@ This document is the source of truth for implementation order, status, dependenc
 - [REST API](API.md)
 - [UX and reference analysis](UX.md)
 - [Project agent instructions](../AGENTS.md)
+- [Postman and portfolio rehearsal](POSTMAN.md)
 
 ## Approved decisions
 
@@ -66,7 +68,7 @@ A task may be marked `[x]` only when all of the following are true:
 | M7 Customer orders, My Items, and reorder       | [x]    | M6         | Customer lifecycle, purchase aggregation, and reorder work                         |
 | M8 Admin order operations and statistics        | [x]    | M6, M7     | Admin transition and reporting flows pass                                          |
 | M9 Homepage composition and responsive finish   | [x]    | M3, M5, M7 | MartHub storefront meets its UX, brand, and responsive contract                    |
-| M10 Testing, security, and production readiness | [-]    | M1-M9      | Critical E2E, security, accessibility, deployment, and recovery gates pass         |
+| M10 Testing, security, and production readiness | [x]    | M1-M9      | Critical E2E, security, accessibility, deployment, and recovery gates pass         |
 
 ## M0 Product requirements, UX, and architecture
 
@@ -521,11 +523,11 @@ Objective: close cross-cutting quality gaps and prove that the portfolio deploym
 | M10.4 | [x]    | Run accessibility, SEO, and performance review                         | M9.6, M10.2 | Critical flows meet WCAG AA checks; metadata is valid; baseline-only performance evidence and material-regression review pass | axe/manual keyboard, Lighthouse, bundle/image audit |
 | M10.5 | [x]    | Finalize production environment, migrations, health, and observability | M10.1       | Production config fails fast; migrations, request IDs, redaction, health, and approved deployment telemetry work | Production build and smoke tests                    |
 | M10.6 | [x]    | Verify backup, restore, and operational runbook                        | M10.5       | A documented restore rehearsal succeeds and rollback steps are actionable                      | Clean restore and data reconciliation               |
-| M10.7 | [ ]    | Finalize Postman collection and portfolio handoff                      | M10.3-M10.6 | Public/customer/admin examples and environment setup are current and safe                      | Collection run and clean-clone walkthrough          |
+| M10.7 | [x]    | Finalize Postman collection and portfolio handoff                      | M10.3-M10.6 | Public/customer/admin examples and environment setup are current and safe                      | Collection run and clean-clone walkthrough          |
 
 Milestone acceptance: customer flow `register -> login -> browse/search -> cart -> COD checkout -> order detail` and admin flow `login -> product -> inventory -> order processing` pass in production-like configuration. Milestone DoD: common DoD plus green CI, deploy smoke test, security clearance, accessibility evidence, and recovery rehearsal.
 
-Verification evidence: pending.
+Verification evidence: M10.1-M10.7 task records below and the final M10 completion audit establish the required journeys, common DoD and cross-cutting exit gates. Completion is local/CI-verified portfolio readiness, not a claim of public production deployment.
 
 ### M10.1 coverage-gap audit (2026-10-05)
 
@@ -945,6 +947,153 @@ restored application smoke succeed; actionable recovery/rollback procedure and
 applicable common DoD are satisfied. M10.6 COMPLETED; M10 remains IN PROGRESS,
 M10.7 NOT STARTED. No new owner decision, commit, push or Git config/remote change.
 Stop here.
+
+### M10.7 preflight / handoff inventory (2026-10-05)
+
+BLOCKED before implementation. Read latest AGENTS/PLAN and the complete owner
+attachment. M10.3-M10.6 are COMPLETED; initial worktree is clean on main
+`42a39e0c6cce3886d7c053eae28e8fdd59a31fe1` (M10.6 backup restore and recovery
+runbook). Required current-main [Actions run 37328632072](https://github.com/lehai260625-dev/MartHub/actions/runs/37328632072)
+and verify remain IN PROGRESS at the last read-only check: npm test is running;
+integration/build/E2E/isolated production TLS smoke remain pending. No completed
+success/failure conclusion is reported. Earlier-HEAD CI and local M10.6 recovery
+evidence are not substitutes for this explicit prerequisite.
+
+Preliminary inventory finds no Postman collection/environment artifacts or
+Newman runner/dependency in tracked filenames, scripts, package/lock and CI.
+README and workspace env templates exist; API.md links implemented OpenAPI.
+README already documents Node/npm, process env, Prisma, local/production ports,
+test commands, production smoke, operator responsibilities and backup runbook.
+It is still foundation-oriented; full capability/portfolio handoff, safe fixture
+setup, collection assertions/external-media skips and a real clean-copy
+walkthrough remain to audit/implement after green CI. Root `.env.example` does
+not exist; the documented templates are workspace-specific. Preliminary
+deployment/migration/recovery review confirms no production credentials or
+Cloudinary mutation should be used for the collection rehearsal. No new owner
+decision is established by this preliminary inventory; the full contract/doc
+and security/privacy handoff audits are not yet claimed complete.
+
+No collection, environment, runner dependency, fixture, harness, walkthrough copy,
+DB, production code or API contract is changed; no test/build/collection is run.
+Only this PLAN preflight/status record changes, including correcting Current
+state's latest completed task from M10.5 to M10.6. Historical verification notes
+are preserved. git diff --check passes. M10.7 BLOCKED pending exact-HEAD CI
+completed/success; M10 and the overall roadmap are not COMPLETED. No commit,
+push or Git remote/config change. Stop here.
+
+M10.7 resumed: Actions run 37328632072/verify is completed/success on exact
+HEAD 42a39e0c6cce3886d7c053eae28e8fdd59a31fe1. The preflight blocker above is
+historical and resolved; preserve its inventory. Continue only remaining handoff
+work. M10.7 IN PROGRESS, no new milestone/task started.
+
+### M10.7 completion evidence (2026-10-05)
+
+Preserved the preflight/blocker history and resumed only the remaining handoff.
+Added [safe collection/environment and run instructions](POSTMAN.md), test-only
+Admin fixture helper, isolated Newman runner/tool lockfile and clean-copy harness.
+README now describes truthful implemented capabilities, architecture, exclusions,
+setup/demo/test/recovery paths and deployment-operator responsibilities. It clearly
+distinguishes read-only Admin order UI from the existing transition API and local/CI
+readiness from actual public deployment. No production bootstrap, fake media upload,
+new API/schema, UI control or milestone is introduced.
+
+All 80 collection method/path entries reconcile with implemented OpenAPI. Final
+REAL Newman 6.2.2 run passes **76 requests / 443 assertions / 0 failures**, after
+15 fresh migrations and approved ten-product/zero-user seed on the exclusively
+owned loopback `marthub_m107_guarded_test` database. Earlier clean runs also pass
+76/443 on separate new databases; no old residue is reused/reset. Public discovery,
+Customer registration/logout/login/refresh/profile/address/cart/wishlist/quote/COD
+replay/cancellation/reorder/My Items/recommendations and real Admin catalog/price/
+inventory/promotion/order transitions/users/statistics use actual authenticated API
+sessions/cookie jar. Two authoritative orders finish CANCELLED and DELIVERED;
+unexpected error-level server logs = 0. Four external media examples are explicitly
+excluded/manual-only with default skip guard and provider steps documented, not
+claimed executed. Private responses retain no-store, safe projections and exact
+money strings. Tokens remain run-local memory, passwords/signatures are blank in
+the committed environment, and the collection refuses external base URLs.
+
+The real collection exposed a deterministic product defect: PostgreSQL's local
+Asia/Bangkok default interpreted adapter-bound Date parameters without a timezone,
+excluding a just-delivered order from the advertised range. Application connections
+now explicitly use UTC; raw statistics boundaries bind ISO strings with explicit
+timestamptz casts. Asia/Ho_Chi_Minh inclusive/exclusive business semantics are
+unchanged. New PostgreSQL regression proves exact start/end, overview and top-product
+results under UTC, Asia/Bangkok and America/New_York sessions. Full PostgreSQL
+integration passes **35 files / 0 failures**; both required real Customer and hybrid
+Admin journeys pass again **8/8** at 360/768/1024/1440 with zero retries, separately
+reset guarded test baselines and authoritative status/history readback. No historical
+data rewrite, developer/shared/production DB access or migration is performed.
+
+Final clean-clone-style snapshot `.cache/clean-handoff-Y2xalw` passes on another
+NEW isolated DB (`marthub_m107_handoffgate_test`), without .git/node_modules/local
+configuration or inherited machine secrets. npm ci, harness units, Prisma validate/
+generate, all 15 migrations, deterministic seed, complete contracts **70/70**, API
+units **34/34**, frontend **262/262 (31 files, two workers)**, production build and
+actual API readiness + production Next homepage startup all pass. Node 26.6.0,
+npm 11.18.0, PostgreSQL 18.4 and Next 16.3.6 are the local versions; CI uses Node 24.
+Synthetic media configuration supports local startup only, never provider mutation.
+The first snapshot's missing mandatory media config was a harness setup defect;
+fixed without weakening production config. Final snapshot uses documented explicit
+env/ports. Reports/tool logs remain ignored; no backup or credential export is added.
+
+After the DB fix, native recovery is reverified on NEW source/target databases:
+PostgreSQL 18.4 custom logical dump/restore, 21 table-count/hash comparisons, seven
+schema manifests, 15 migration checksums, 14 invariant probes, migrate deploy NO_OP,
+restored readiness and exact-money/snapshot read smoke all PASS. Separate production
+TLS smoke passes with exit 0 for fresh/no-op migrations, secure cookies/refresh/
+logout, CSP/hydration, safe telemetry and graceful shutdown. Intermediate failures
+are explained: restore correctly refused pre-created databases (new names used);
+OpenSSL inherited a missing local config (installed config selected only for test);
+the test edge teardown attempted a second write after streamed headers. The last
+issue is fixed only in the smoke proxy with a regression for pre-header 503,
+post-header stream termination and already-ended responses; assertions remain intact.
+
+Security/privacy handoff review finds no exported live credential/token/cookie,
+personal data or machine-specific operational path in handoff artifacts. Application
+production dependency scan remains **0 findings**; the five already-classified root
+dev-only HIGH entries retain M10.3's non-reachability rationale. The separate pinned
+Newman graph is patched via compatible tool-only overrides, not the root lockfile.
+Its final scan is **0 CRITICAL / 6 HIGH / 4 MODERATE package entries**, including
+propagated parents, not a false zero-audit claim. Two underlying HIGH roots (Faker
+helpers.fake and Forge RSA verification) and MODERATE CSV/UUID paths are specifically
+non-reachable in the trusted local collection; sources, input/auth constraints,
+unsupported patched Faker-major diagnosis and review limitations are in POSTMAN.md.
+No arbitrary collection, data-file, remote-host or auth-plugin execution is supported.
+Security-review skill informed these restricted-tool/input/redaction boundaries.
+
+Final harness tests pass **14/14**, covering all 80 operations, blank credentials,
+auth/script restrictions, loopback refusal, DB guards, docs relative paths, README/
+Postman anchors and npm command existence, recovery invariants and proxy teardown.
+CI now runs the complete harness-unit command instead of only its former DB guard.
+Local Admin fixture creation passes; repeat refuses overwrite/promotion with safe
+output. Root lint, scoped Prettier and git diff --check PASS. Full-repo pre-existing
+Windows EOL/format drift is not changed. Known pg concurrent-query deprecation,
+Vitest optimization and terminal/EOL warnings remain non-failing; no unexplained
+application error remains. No full browser-suite rerun is claimed for M10.7;
+existing full-suite evidence is retained and the affected real journeys rerun.
+M10.7 acceptance and applicable common DoD PASS: **COMPLETED**.
+
+### M10 final milestone completion audit (2026-10-05)
+
+| Exit gate | Evidence audited / result |
+| --- | --- |
+| Critical unit/integration coverage | M10.1 gap audit and complete suites; M10.7 final clean-copy units and 35-file PostgreSQL regression PASS |
+| Required production-like journeys | M10.2 chained Customer + owner-approved hybrid Admin journeys; complete 176-case four-project gates in M10.3/M10.4, retained M10.5 regression; M10.7 affected chains 8/8 PASS |
+| Green current-main CI | Actions 37328632072/verify completed SUCCESS on exact HEAD 42a39e0; local uncommitted M10.7 checks are explicitly separate, not falsely claimed remote-verified |
+| Security/privacy clearance | M10.3 PASS, M10.5 approved CSP/private-API/cleanup policies, M10.7 app scan 0 + explicit restricted-tool advisory classification; no unresolved reachable CRITICAL/HIGH, secret, unsafe token persistence, authorization bypass or sensitive logging leak |
+| Accessibility/SEO/performance | M9 independent UI reviewer PASS and responsive/keyboard/axe evidence; M10.4 critical-flow a11y/SEO and owner-authorized baseline-only Lighthouse/bundle/image review PASS, no invented numeric budget |
+| Production deployment smoke | M10.5 production config/TLS/readiness/telemetry/shutdown PASS; M10.7 affected TLS smoke reverified exit 0; actual deployment/edge/firewall/log/scheduler setup remains operator-owned |
+| Recovery | M10.6 native backup/restore reconciliation, migration no-op and restored smoke PASS; reverified after DB connector fix; runbook forward-only/app-first rollback, no invented RPO/RTO |
+| Handoff/common DoD | M10.7 safe 76/443 collection, fresh clean-copy, path/command/privacy audit, required checks/docs and preserved historical evidence PASS; no copied assets, scope expansion or unexplained error |
+
+All seven task acceptances and M10 milestone acceptance/DoD are satisfied within
+the approved portfolio/local-and-CI assumptions. **M10 COMPLETED; M0-M10 roadmap
+COMPLETED.** No future milestone is started. Production hosting, real edge/firewall
+verification, external media recovery and operational backup storage/retention are
+not misrepresented as deployed guarantees. Local owned test cluster is stopped
+after verification; disposable databases/artifacts are retained, never committed.
+No new owner decision/blocker, commit, push, history rewrite or Git remote/config
+change. Stop here.
 
 ## Test strategy summary
 

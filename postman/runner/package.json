@@ -1,0 +1,22 @@
+{
+  "name": "marthub-local-postman-tool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Isolated trusted-collection tool, never an application dependency",
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "dependencies": {
+    "newman": "6.2.2"
+  },
+  "overrides": {
+    "handlebars": "4.7.9",
+    "flatted": "3.4.4",
+    "lodash": "4.18.1",
+    "node-forge": "1.4.0",
+    "underscore": "1.13.8",
+    "qs": "6.16.0",
+    "jose": "4.15.9"
+  }
+}

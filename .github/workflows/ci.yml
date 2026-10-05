@@ -42,7 +42,7 @@ jobs:
       - run: npm run test:integration
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: node --test scripts/test/e2e-database.test.js
+      - run: npm run test:harness
       - run: npm run test:e2e
       - name: Isolated production TLS smoke
         env:

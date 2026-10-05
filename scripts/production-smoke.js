@@ -11,6 +11,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { chromium, request } from '@playwright/test';
 import { createDatabase } from '../apps/api/src/db/client.js';
 import { e2eDatabaseUrl } from './lib/e2e-database.js';
+import { upstreamFailure } from './lib/smoke-proxy.js';
 
 // Destructive helpers must never run against a shared/non-test database.
 // This smoke does not truncate: it requires an empty, exclusively owned DB.
@@ -159,8 +160,7 @@ try {
         },
       );
       upstream.on('error', () => {
-        res.writeHead(503);
-        res.end();
+        upstreamFailure(res);
       });
       req.pipe(upstream);
     },
@@ -297,15 +297,17 @@ try {
 } finally {
   await browser?.close();
   await client?.dispose();
+  // Drain the test edge before stopping its upstream; otherwise an outstanding
+  // browser stream can error after headers have already been forwarded.
+  if (edge) {
+    edge.closeAllConnections();
+    await new Promise((resolve) => edge.close(resolve));
+  }
   await stopApi();
   if (web?.exitCode === null && web.signalCode === null) {
     const exited = once(web, 'exit');
     web.kill('SIGTERM');
     await exited;
-  }
-  if (edge) {
-    edge.closeAllConnections();
-    await new Promise((resolve) => edge.close(resolve));
   }
   await database.close();
 }

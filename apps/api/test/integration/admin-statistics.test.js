@@ -142,6 +142,37 @@ const zeros = {
   CANCELLED: '0',
 };
 
+test('UTC statistics boundaries are invariant under PostgreSQL session timezone', async (t) => {
+  const f = await fixture(t);
+  const range = {
+    startInclusive: '1981-03-03T17:00:00.000Z',
+    endExclusive: '1981-03-04T17:00:00.000Z',
+  };
+  const [connection] = await f.prisma
+    .$queryRaw`SELECT current_setting('TimeZone') AS timezone`;
+  assert.equal(connection.timezone, 'UTC');
+  for (const value of [
+    range.startInclusive,
+    '1981-03-04T16:59:59.999Z',
+    range.endExclusive,
+  ]) {
+    await f.order({ deliveredAt: new Date(value), createdAt: new Date(value) });
+  }
+  for (const timezone of ['UTC', 'Asia/Bangkok', 'America/New_York']) {
+    await f.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT set_config('TimeZone', ${timezone}, true)`;
+      const [overview] = await tx.$queryRaw(overviewSql(range));
+      assert.equal(overview.deliveredOrderCount, '2', timezone);
+      assert.equal(overview.createdOrderCount, '2', timezone);
+      assert.equal(overview.revenue, '260', timezone);
+      const [top] = await tx.$queryRaw(topProductsSql(range, 5));
+      assert.equal(top.totalProducts, '1', timezone);
+      assert.equal(top.items[0].soldQuantity, '2', timezone);
+      assert.equal(top.items[0].revenue, '200', timezone);
+    });
+  }
+});
+
 test('Statistics endpoints are Admin-only, no-store, safe and read-only with exact empty responses', async (t) => {
   const f = await fixture(t);
   const auditBefore = await f.prisma.adminAuditLog.count();

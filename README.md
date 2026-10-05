@@ -1,14 +1,63 @@
 # MartHub
 
-JavaScript npm workspaces for the Next.js storefront, Express API, and shared contracts.
+MartHub is a single-vendor COD commerce portfolio: an original responsive storefront,
+Customer account/shopping flows and Admin catalog/order operations with statistics.
+It is verified locally and in CI—not claimed to be publicly production-deployed.
+JavaScript npm workspaces contain Next.js/React/Tailwind, Express, PostgreSQL/Prisma
+and shared runtime contracts; Cloudinary is accessed through a server-controlled adapter.
 Roadmap and task evidence: [docs/PLAN.md](docs/PLAN.md). Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Local foundation
+## Capabilities and engineering highlights
 
-Use Node.js 24 LTS or newer and npm 11. Install with `npm ci`.
+- Guest: search/browse active catalog, exact VND product detail and scheduled homepage content.
+- Customer: rotating refresh sessions, owned profile/addresses, cart/wishlist, server-priced
+  idempotent COD checkout, immutable order history/cancellation, My Items/reorder and
+  truthfully labeled recommendations.
+- Admin: safe catalog/media/price/inventory management, order queue/detail and explicit
+  transition commands, protected user-status management and delivered-only statistics.
+  Order-processing commands are API-backed; the current Admin detail UI is read-only,
+  not an unimplemented control disguised as a portfolio capability.
+- Security/data: database-authoritative RBAC/ownership, memory access tokens and HttpOnly
+  rotated cookies; BIGINT money; PostgreSQL transactions/locking, no oversell, exactly-once
+  cancellation restoration, inventory ledger and append-only generalized Admin audit.
+- UX/operations: MartHub-owned teal/orange identity, keyboard/reduced-motion/responsive
+  checks at 360/768/1024/1440; nonce CSP, SEO/performance baseline evidence, safe logs,
+  guarded production-like TLS smoke and reconciled native backup/restore rehearsal.
+
+Evidence and limitations are in PLAN; these are tested implementation claims, not
+hosting/SLA/Cloudinary-asset recovery guarantees. COD only; no variants, marketplace,
+ratings/reviews, coupons, online payments, returns/refunds or multi-warehouse features.
+
+## Repository map and demo entry points
+
+`apps/web` owns storefront/account/Admin UI; `apps/api` owns REST/services/transactions
+and Prisma migrations; `packages/contracts` owns shared schemas/OpenAPI; `e2e` and
+`scripts` own browser/rehearsal checks; `postman` holds safe portfolio artifacts.
+See [API/OpenAPI contracts](docs/API.md), [domain invariants](docs/DATABASE.md),
+[UX/brand contracts](docs/UX.md), [Postman import/run guide](docs/POSTMAN.md) and
+[operational recovery](docs/BACKUP_RESTORE.md).
+
+Suggested demo: `/` → `/search?q=mug` → product → authenticated `/cart` → owned address
+→ COD checkout → `/account/orders`; Admin `/admin/products` → inventory → order
+queue/detail, with the existing transition API → `/admin` statistics. The Postman
+rehearsal demonstrates the command portion without inventing UI controls.
+
+## Local setup
+
+Use Node.js 24 LTS or newer, npm 11, PostgreSQL 18 and a separately owned local DB.
+Install with `npm ci` from the cloned repository root; there is no root .env template.
 Set the API environment from `apps/api/.env.example` in your shell; the API currently reads process environment.
 Set the server-only web API origin using `apps/web/.env.local` when the default localhost port differs.
 Never commit local environment files.
+
+The API does not auto-load .env files: export the workspace template values into
+its shell (or use a local Node `--env-file` invocation explicitly). Cloudinary
+configuration is required for API startup even for read-only browsing. Use your
+non-production account for actual uploads; a read-only local/test demo can use
+synthetic `marthub-local-test` / `local-test-key` and a locally generated 32-byte
+secret, but cannot claim provider upload success. Never use those values in deployment.
+Application DB connections explicitly use UTC; business statistics use the approved
+Asia/Ho_Chi_Minh calendar independently of PostgreSQL's server display timezone.
 
 Authentication requires `AUTH_JWT_SECRET`: generate a unique 32-byte secret with
 `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`
@@ -24,6 +73,7 @@ Provide a PostgreSQL database and set `DATABASE_URL` before running:
 npm run db:validate --workspace @marthub/api
 npm run db:generate --workspace @marthub/api
 npm run db:migrate --workspace @marthub/api
+npm run db:seed --workspace @marthub/api
 npm run dev --workspace @marthub/api
 # In another terminal:
 npm run dev --workspace @marthub/web
@@ -34,7 +84,8 @@ Browser API requests use `/api/v1` through Next.js. Liveness is `/api/v1/health/
 readiness is `/api/v1/health/ready` and returns 503 when PostgreSQL is unavailable.
 SIGINT/SIGTERM drain requests for up to ten seconds and disconnect Prisma.
 
-The baseline migration creates only the public namespace. Domain tables are introduced in their owning milestones.
+Current migrations create the complete MVP domain. The original seed is optional
+for development and never automatically applied to production.
 Prisma uses `prisma-client-js` to preserve JavaScript output. The root pins patched
 `deepmerge-ts` and `mysql2` transitive tooling dependencies; recheck those overrides when upgrading Prisma.
 
@@ -132,12 +183,20 @@ Install the browser once with `npx playwright install chromium`.
 | `npm run lint`             | JavaScript and React lint checks                                                      |
 | `npm run format:check`     | Implementation formatting                                                             |
 | `npm test`                 | Contracts, API unit/process, and frontend component tests                             |
+| `npm run test:harness`     | Test DB guards, documentation/collection safety and recovery/smoke helper units       |
 | `npm run test:integration` | Isolated real-PostgreSQL integration suites                                           |
 | `npm run build`            | Shared/API syntax checks and Next.js production build                                 |
 | `npm run test:e2e`         | Production web + API proxy, keyboard, axe, 404 recovery, and 360/768/1024/1440 checks |
 
 E2E starts its own API on port 4000 and production web on port 13000. Keep those
 ports free and build with the default `API_INTERNAL_ORIGIN=http://127.0.0.1:4000`.
+For a local production build set `WEB_ORIGIN=https://127.0.0.1:13000` explicitly
+(development's HTTP value is deliberately rejected by the production guard).
+Before `npm run test:e2e`, select an exclusively owned loopback DB whose name
+contains the separate word `test`, set `NODE_ENV=test` and
+`MARTHUB_E2E_RESET_DATABASE=1`. The browser harness resets that dedicated DB
+between viewport projects; never opt in with shared/developer data. Its local
+HTTP browser setup is separate from the HTTPS production smoke above.
 It checks database readiness before running and shuts down its servers afterward.
 Screenshots and traces are written to ignored `test-results/`; the HTML report is
 in `playwright-report/`. `npm run format` formats implementation files without

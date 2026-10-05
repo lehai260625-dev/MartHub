@@ -8,6 +8,7 @@ This document defines the approved PostgreSQL and Prisma data model for the Mart
 - The MVP is single-vendor, uses one inventory location, and treats each product as one sellable SKU.
 - Internal identifiers are UUIDs. Public order numbers are separate, human-readable identifiers.
 - All timestamps use timezone-aware PostgreSQL timestamps and are exposed as ISO 8601 UTC strings.
+- Application Prisma connections explicitly select UTC regardless of the server default: the adapter serializes Date inputs without an offset. Raw analytics boundaries use explicit ISO-string `timestamptz` casts; local business calendar resolution remains Asia/Ho_Chi_Minh. Direct operator clients may use another display timezone, not another interpretation of application timestamps.
 - Referential actions are explicit. Business records are archived or made immutable when deletion would damage history.
 - Checkout, cancellation, and inventory changes are database transactions; frontend state is never authoritative.
 

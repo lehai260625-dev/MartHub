@@ -47,13 +47,13 @@ async function resolveRange(tx, query) {
   };
 }
 export const deliveredPopulation = (range) =>
-  Prisma.sql`status = 'DELIVERED' AND delivered_at >= ${new Date(range.startInclusive)} AND delivered_at < ${new Date(range.endExclusive)}`;
+  Prisma.sql`status = 'DELIVERED' AND delivered_at >= ${range.startInclusive}::timestamptz AND delivered_at < ${range.endExclusive}::timestamptz`;
 
 // Export query builders so representative EXPLAIN reviews use exactly runtime SQL.
 export function overviewSql(range) {
   return Prisma.sql`
     WITH delivered AS MATERIALIZED (SELECT id,total FROM orders WHERE ${deliveredPopulation(range)}),
-    created AS MATERIALIZED (SELECT status FROM orders WHERE created_at >= ${new Date(range.startInclusive)} AND created_at < ${new Date(range.endExclusive)})
+    created AS MATERIALIZED (SELECT status FROM orders WHERE created_at >= ${range.startInclusive}::timestamptz AND created_at < ${range.endExclusive}::timestamptz)
     SELECT COALESCE((SELECT SUM(total) FROM delivered),0)::text AS revenue,
       (SELECT COUNT(*) FROM delivered)::text AS "deliveredOrderCount",
       COALESCE((SELECT SUM(i.quantity::numeric) FROM order_items i JOIN delivered d ON d.id=i.order_id),0)::text AS "unitsSold",

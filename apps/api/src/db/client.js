@@ -6,6 +6,9 @@ export function createDatabase(databaseUrl) {
     connectionString: databaseUrl,
     connectionTimeoutMillis: 3000,
     max: 10,
+    // Prisma's PostgreSQL adapter serializes Date values without an offset.
+    // Keep application timestamps independent of the server's default timezone.
+    options: '-c timezone=UTC',
   });
   const prisma = new PrismaClient({
     adapter,
