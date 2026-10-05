@@ -76,6 +76,44 @@ All handled errors use stable machine-readable codes:
 
 Logs use the stable error code and request ID. Passwords, hashes, authorization headers, cookies, tokens, and sensitive address data are redacted.
 
+## Production browser security and telemetry
+
+Production Next HTML uses a unique server-generated 32-byte random nonce per
+request, overwriting supplied nonce/CSP request headers before rendering. Policy:
+`default-src 'self'; script-src 'self' 'nonce-<request>'; style-src 'self' 'unsafe-inline';
+img-src 'self' data: blob: https://res.cloudinary.com; connect-src 'self' https://api.cloudinary.com;
+font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`.
+The upload origin is needed by the existing direct signed-upload browser flow;
+delivery uses the exact Cloudinary image origin. No script unsafe-inline/eval,
+wildcard origin or font data source is allowed. Custom JSON-LD is nonced. Dev
+tooling does not inherit this production policy. HTML also sends nosniff, DENY,
+strict-origin-when-cross-origin and private/no-store; existing API Helmet headers
+remain separate. Production topology/edge limiting belongs to ARCHITECTURE.md.
+
+API stdout JSON allowlist: `http_request` has level, event, requestId, method
+(GET/HEAD/POST/PUT/PATCH/DELETE/OPTIONS/OTHER), normalized matched Express route
+template or `unmatched`, numeric status, statusClass, integer durationMs and an
+optional stable error code. Mounted templates may share names; they are not raw
+URLs or unique entity identifiers. Group by bounded method/template/status/code,
+not correlation IDs. Counts/durations/error rates and checkout failure codes are
+derived by the deployment log platform. No raw query/body/header/error, IP,
+user/email/order/product/session identifier, secret or address is emitted.
+
+Lifecycle events: `application_started`, `application_configuration_failed`,
+`application_listen_failed`, `shutdown_started`, `shutdown_completed`,
+`shutdown_failed`. Readiness emits `db_readiness_ready` or `db_readiness_failed`
+with requestId; live is dependency-free, ready runs SELECT 1 and returns safe
+503 SERVICE_UNAVAILABLE on DB failure. Unexpected HTTP errors use INTERNAL_ERROR,
+not an exception string. Cleanup emits `session_cleanup_completed` with
+deletedRows/batches/batchLimitReached, or safe `session_cleanup_failed` /
+`session_cleanup_close_failed`. Sinks cannot alter transaction/HTTP outcomes.
+
+Safe example: `{"level":"error","event":"http_request","requestId":"probe_1","method":"GET","route":"/health/ready","status":503,"statusClass":"5xx","durationMs":8,"code":"SERVICE_UNAVAILABLE"}`.
+Operators correlate readiness failure with its HTTP record, distinguish live/ready
+and startup/config failures, and track route failures/latency before investigating
+private service/DB health. No public `/metrics`, vendor SDK or credentials endpoint
+exists; collected log access is deployment operational/admin-only.
+
 ## Authentication classes
 
 ### Public

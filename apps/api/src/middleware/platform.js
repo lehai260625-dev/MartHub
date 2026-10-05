@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import express from 'express';
 import helmet from 'helmet';
 import { requestIdSchema } from '@marthub/contracts';
+import { emitEvent, jsonLogger } from '../observability/log.js';
 
 export class ApiError extends Error {
   constructor(status, code, message, details) {
@@ -14,26 +15,37 @@ export class ApiError extends Error {
 
 export function installPlatform(
   app,
-  {
-    origin = 'http://localhost:3000',
-    logger = (record) => process.stdout.write(JSON.stringify(record) + '\n'),
-  } = {},
+  { origin = 'http://localhost:3000', logger = jsonLogger } = {},
 ) {
   app.use((req, res, next) => {
     const candidate = req.get('x-request-id');
     req.requestId = requestIdSchema.safeParse(candidate).success
       ? candidate
       : randomUUID();
+    req.emitOperationalEvent = (event) =>
+      emitEvent(logger, event, { requestId: req.requestId });
     res.set('X-Request-Id', req.requestId);
     const started = performance.now();
     res.on('finish', () => {
       // Allowlist only metadata: no URL query, headers, body, address, or raw errors.
       const record = {
         level: res.statusCode >= 500 ? 'error' : 'info',
+        event: 'http_request',
         requestId: req.requestId,
-        method: req.method,
+        method: [
+          'GET',
+          'HEAD',
+          'POST',
+          'PUT',
+          'PATCH',
+          'DELETE',
+          'OPTIONS',
+        ].includes(req.method)
+          ? req.method
+          : 'OTHER',
         route: req.route?.path || 'unmatched',
         status: res.statusCode,
+        statusClass: `${Math.floor(res.statusCode / 100)}xx`,
         durationMs: Math.round(performance.now() - started),
         code: res.locals.errorCode,
       };

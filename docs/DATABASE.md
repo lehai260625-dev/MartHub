@@ -262,9 +262,31 @@ Indexes: `(actorUserId, createdAt DESC)`; `(entityType, entityId, createdAt DESC
 - Cart `1:N` CartItem; Wishlist `1:N` WishlistItem.
 - Order `1:N` OrderItem, OrderStatusHistory, and order-linked InventoryMovement.
 
+### Refresh-session retention and cleanup
+
+Effective family absolute expiry is MAX(expiresAt) across the retained family;
+rotation does not extend the approved 30-day login lifetime. Preserve every row
+in a family while replay lineage can remain relevant. Eligibility requires no
+unrevoked/unexpired row and database time at least 30 days beyond the later of
+effective expiry and latest relevant revokedAt. Using MAX(revokedAt) conservatively
+retains fully revoked families after logout/replay/account-disable too. Individual
+rotated ancestors are never independently pruned before family eligibility.
+
+`npm run sessions:cleanup --workspace @marthub/api` is an explicit DB-only command
+for an operational scheduler, recommended daily. Each transaction locks eligible
+owning User rows in ID order with SKIP LOCKED, matching issuance/rotation/revocation
+serialization, then rechecks authoritative eligibility. It deletes at most 500
+leaf session rows, preserving parent lineage of surviving rows. The invocation
+commits at most 20 steps; subsequent invocations continue safely. A non-full step
+does not imply completion because deleting leaves can expose eligible ancestors.
+Zero eligible/unlocked rows ends the invocation; another cleanup may hold locks.
+`batchLimitReached=true` signals bounded remaining work: rerun the command until
+drained, never delete active records manually. Restart/repeat is idempotent and
+concurrent commands cannot duplicate deletes. No broker or schema change is needed.
+
 ## Deletion and archival policy
 
-- Refresh sessions may be deleted after a documented retention window once expired or revoked.
+- Refresh sessions may be deleted only under the family retention/cleanup policy above; individual revocation/rotation is insufficient.
 - Cart items and obsolete empty carts may be cleaned up after a retention window.
 - Users, addresses, categories, products, and promotions use status or `archivedAt` for normal removal.
 - Orders, order items, status history, inventory movements, price history, and admin audit logs are retained and not hard-deleted through product APIs.

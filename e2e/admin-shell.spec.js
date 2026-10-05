@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './helpers/security-test.js';
 import AxeBuilder from '@axe-core/playwright';
 import { mockAdminSession } from './helpers/admin-session.js';
 import { statisticsFixture } from '../apps/web/test/fixtures/statistics.js';

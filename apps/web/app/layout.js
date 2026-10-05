@@ -2,6 +2,7 @@
 import { STORE_NAME } from '@marthub/contracts';
 import { getWebOrigin } from '../features/catalog/catalog-seo';
 import Providers from './providers';
+import { headers } from 'next/headers';
 
 export const metadata = {
   metadataBase: new URL(getWebOrigin()),
@@ -10,7 +11,9 @@ export const metadata = {
   alternates: { canonical: '/' },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  // Request-time rendering is required for unique production script nonces.
+  await headers();
   return (
     <html lang="en">
       <body>

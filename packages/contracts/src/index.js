@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './schema-runtime.js';
 export * from './auth.js';
 export * from './admin.js';
 export * from './admin-category.js';

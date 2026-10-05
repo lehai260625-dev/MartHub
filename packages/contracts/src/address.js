@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './schema-runtime.js';
 import { personNameSchema, phoneSchema } from './auth.js';
 
 const plainText = (maximum, minimum = 1) =>

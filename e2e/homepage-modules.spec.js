@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './helpers/security-test.js';
 import AxeBuilder from '@axe-core/playwright';
 import { openHomepage, waitForSettledUi } from './helpers/settled-ui.js';
 

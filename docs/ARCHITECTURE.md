@@ -180,7 +180,31 @@ Runtime configuration is validated at process startup. Production separates migr
 
 ## Observability and Operations
 
-The API emits structured logs with a request ID propagated through web-to-API calls. Logs include route, method, status, latency, authenticated subject ID when appropriate, and stable error code. Passwords, tokens, cookies, secrets, and full address data are redacted.
+M10.5 production boundary: Internet -> TLS edge/reverse proxy -> Next.js -> Express
+over a non-public service path. The API has no second public hostname/port; the
+deployment must enforce private networking/firewall/service ingress restricted to
+the web tier. Express continues to distrust forwarded client-IP headers. The edge
+owns authoritative per-client-IP abuse limiting (stricter auth routes as configured
+by the provider); existing API peer/account limits are aggregate defense-in-depth,
+not a substitute. No signed-IP protocol or broad trust proxy is introduced.
+
+Production HTML uses request-time rendering and an unpredictable per-request
+script nonce supplied by Next Proxy. HTML is private/no-store: do not put nonce
+HTML in a shared CDN cache. Next framework scripts and custom JSON-LD receive the
+nonce; browser contract validation uses Zod's interpreter rather than its optional
+Function/JIT probe. API/data semantics and server validation are unchanged. Exact
+policy/header ownership is in [API.md](API.md#production-browser-security-and-telemetry).
+
+The MVP chooses deployment telemetry from bounded JSON application logs, not a
+public metrics endpoint or APM dependency. Operators derive request counts,
+duration distributions, status/error rates and checkout failures from normalized
+route/status/code records; readiness events indicate DB availability. Collected
+logs are operational/admin-only through deployment access controls. The repository
+defines the emitted contract, not a configured vendor collector, firewall or edge
+rate-limit deployment. Session scheduling/retention is owned by
+[DATABASE.md](DATABASE.md#refresh-session-retention-and-cleanup).
+
+The API emits structured logs with a request ID propagated through web-to-API calls. Logs include bounded route template, method, status/class, latency and stable error code, never authenticated subject IDs or raw URLs. Passwords, tokens, cookies, secrets, and all profile/address PII are excluded.
 
 Required operational surfaces:
 

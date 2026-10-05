@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './schema-runtime.js';
 
 export const adminUserStatusSchema = z.enum([
   'ACTIVE',

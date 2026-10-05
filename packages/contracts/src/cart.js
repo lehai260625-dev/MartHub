@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './schema-runtime.js';
 import { productCardSchema } from './catalog.js';
 
 export const MAX_CART_ITEM_QUANTITY = 99;

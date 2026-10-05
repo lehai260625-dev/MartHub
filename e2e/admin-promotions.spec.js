@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './helpers/security-test.js';
 import AxeBuilder from '@axe-core/playwright';
 import { mockAdminSession } from './helpers/admin-session.js';
 
@@ -34,14 +34,16 @@ test('admin creates, publishes, uploads, and archives a promotion while retainin
 }) => {
   let promotion = null;
   await mockAdminSession(page, admin);
-  await page.route('https://api.cloudinary.test/upload', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ public_id: publicId }),
-    }),
+  await page.route(
+    'https://api.cloudinary.com/v1_1/test/image/upload',
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ public_id: publicId }),
+      }),
   );
-  await page.route('https://res.cloudinary.test/**', (route) =>
+  await page.route('https://res.cloudinary.com/**', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'image/png',
@@ -64,7 +66,7 @@ test('admin creates, publishes, uploads, and archives a promotion while retainin
           data: {
             cloudName: 'test',
             apiKey: 'public-key',
-            uploadUrl: 'https://api.cloudinary.test/upload',
+            uploadUrl: 'https://api.cloudinary.com/v1_1/test/image/upload',
             expiresAt: new Date((timestamp + 300) * 1000).toISOString(),
             parameters: {
               allowed_formats: 'jpg,png,webp',
@@ -84,7 +86,7 @@ test('admin creates, publishes, uploads, and archives a promotion while retainin
         ...promotion,
         image: {
           publicId,
-          url: `https://res.cloudinary.test/image/upload/f_auto,q_auto,c_limit,w_1200/${publicId}`,
+          url: `https://res.cloudinary.com/test/image/upload/f_auto,q_auto,c_limit,w_1200/${publicId}`,
         },
       };
       await route.fulfill({

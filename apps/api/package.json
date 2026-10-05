@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "node prisma/seed.js",
     "test:integration": "node test/run-integration.js",
-    "media:cleanup": "node src/modules/media/run-cleanup.js"
+    "media:cleanup": "node src/modules/media/run-cleanup.js",
+    "sessions:cleanup": "node src/modules/auth/run-cleanup.js"
   },
   "dependencies": {
     "jose": "6.2.12",

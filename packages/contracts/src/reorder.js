@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './schema-runtime.js';
 import { moneySchema } from './money.js';
 import { MAX_CART_ITEM_QUANTITY } from './cart.js';
 

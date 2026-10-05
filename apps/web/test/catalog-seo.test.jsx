@@ -1,5 +1,5 @@
 ﻿import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   catalogSitemap,
   categoryMetadata,
@@ -12,6 +12,9 @@ import {
 import { StructuredData } from '../features/catalog/structured-data';
 
 const origin = 'https://shop.example.test';
+vi.mock('next/headers', () => ({
+  headers: async () => new Headers({ 'x-nonce': 'test-server-nonce' }),
+}));
 const category = {
   id: 'da7a0000-0000-4000-8000-010000000004',
   name: 'Tabletop',
@@ -97,17 +100,18 @@ describe('M3.8 catalog metadata', () => {
     ]);
   });
 
-  it('serializes JSON-LD without executable less-than characters', () => {
+  it('serializes JSON-LD without executable less-than characters and includes the trusted request nonce', async () => {
     const data = productStructuredData(product, origin);
     const serialized = serializeStructuredData(data);
     expect(serialized).not.toContain('<');
     expect(serialized).toContain('\\u003cstoneware>');
     const { container } = render(
-      <StructuredData data={data} id="product-structured-data" />,
+      await StructuredData({ data, id: 'product-structured-data' }),
     );
     expect(
       container.querySelector('script[type="application/ld+json"]'),
     ).toHaveAttribute('id', 'product-structured-data');
+    expect(container.querySelector('script').nonce).toBe('test-server-nonce');
   });
 
   it('creates a deduplicated sitemap for public category and product projections only', () => {

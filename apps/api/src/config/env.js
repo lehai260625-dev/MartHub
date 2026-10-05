@@ -17,6 +17,8 @@ export function validateDatabaseUrl(value) {
 
 export function readShippingConfig(env = process.env) {
   const amount = (key, fallback) => {
+    if (env.NODE_ENV === 'production' && !env[key])
+      throw new Error(`${key} is required in production.`);
     const value = env[key] ?? fallback;
     if (
       typeof value !== 'string' ||
@@ -36,12 +38,21 @@ export function readShippingConfig(env = process.env) {
 }
 
 export function readEnv(env = process.env) {
+  if (env.NODE_ENV === 'production') {
+    for (const key of ['HOST', 'PORT', 'DATABASE_URL', 'WEB_ORIGIN']) {
+      if (!env[key]) throw new Error(`${key} is required in production.`);
+    }
+  }
   const port = Number(env.PORT || 4000);
   if (!Number.isInteger(port) || port < 1 || port > 65535)
     throw new Error('PORT must be an integer from 1 to 65535.');
   const nodeEnv = env.NODE_ENV || 'development';
   if (!['development', 'test', 'production'].includes(nodeEnv))
     throw new Error('NODE_ENV must be development, test, or production.');
+  if (env.HOST && !/^[A-Za-z0-9.:[\]_-]{1,253}$/.test(env.HOST))
+    throw new Error(
+      'HOST must be a valid listener host without whitespace or a path.',
+    );
   let origin;
   try {
     const url = new URL(

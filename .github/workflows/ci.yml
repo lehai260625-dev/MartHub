@@ -23,7 +23,8 @@ jobs:
       DATABASE_URL: postgresql://marthub:marthub_test@127.0.0.1:5432/marthub_test
       NEXT_TELEMETRY_DISABLED: '1'
       MARTHUB_E2E_RESET_DATABASE: '1'
-      WEB_ORIGIN: http://127.0.0.1:13000
+      WEB_ORIGIN: https://127.0.0.1:13000
+      API_INTERNAL_ORIGIN: http://127.0.0.1:4000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,6 +44,13 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: node --test scripts/test/e2e-database.test.js
       - run: npm run test:e2e
+      - name: Isolated production TLS smoke
+        env:
+          PGPASSWORD: marthub_test
+          DATABASE_URL: postgresql://marthub:marthub_test@127.0.0.1:5432/marthub_production_smoke_test
+        run: |
+          createdb --host=127.0.0.1 --port=5432 --username=marthub marthub_production_smoke_test
+          npm run test:production-smoke
       - uses: actions/upload-artifact@v4
         if: always()
         with:

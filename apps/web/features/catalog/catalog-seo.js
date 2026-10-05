@@ -1,18 +1,27 @@
 ﻿const DEFAULT_WEB_ORIGIN = 'http://localhost:3000';
 
 export function getWebOrigin(env = process.env) {
-  const value = env.WEB_ORIGIN || DEFAULT_WEB_ORIGIN;
-  const url = new URL(value);
+  const production = env.NODE_ENV === 'production';
+  const value = env.WEB_ORIGIN || (production ? '' : DEFAULT_WEB_ORIGIN);
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(
+      'WEB_ORIGIN is required and must be an HTTP(S) origin without credentials or a path, with HTTPS in production.',
+    );
+  }
   if (
     !['http:', 'https:'].includes(url.protocol) ||
     url.username ||
     url.password ||
     url.pathname !== '/' ||
     url.search ||
-    url.hash
+    url.hash ||
+    (production && url.protocol !== 'https:')
   ) {
     throw new Error(
-      'WEB_ORIGIN must be an HTTP(S) origin without credentials or a path.',
+      'WEB_ORIGIN must be an HTTP(S) origin without credentials or a path, with HTTPS in production.',
     );
   }
   return url.origin;

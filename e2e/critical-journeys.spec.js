@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './helpers/security-test.js';
 import { createDatabase } from '../apps/api/src/db/client.js';
 import { hashPassword } from '../apps/api/src/modules/auth/passwords.js';
 import { e2eDatabaseUrl } from '../scripts/lib/e2e-database.js';

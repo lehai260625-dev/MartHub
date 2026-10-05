@@ -72,10 +72,12 @@ export function createApp({
   router.get('/health/ready', async (req, res) => {
     try {
       await readiness();
+      req.emitOperationalEvent('db_readiness_ready');
       res.json(
         healthSchema.parse({ data: { status: 'ready', version: API_VERSION } }),
       );
     } catch {
+      req.emitOperationalEvent('db_readiness_failed');
       throw new ApiError(503, 'SERVICE_UNAVAILABLE', 'Service is not ready.');
     }
   });

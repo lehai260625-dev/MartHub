@@ -13,8 +13,8 @@ This document is the source of truth for implementation order, status, dependenc
 
 - Approved scope and architecture decisions: complete.
 - Latest maintenance: current-main homepage rail feedback accessibility fix is COMPLETED; GitHub Actions run 37272219621 and its verify job succeeded on current main 7d3ad672cf5c63c42b427b080e90abc947d3f14c.
-- Active implementation milestone: M10; M10.1-M10.4 are COMPLETED. M10.4 passes the approved baseline-only accessibility/SEO/performance review; M10.5-M10.7 remain NOT STARTED.
-- Latest completed milestone: M9 Homepage composition and responsive finish, after final UI finish-gate verification on 2026-10-05. Latest completed task: M10.4 on 2026-10-05; M1-M9 are COMPLETED, M10 remains IN PROGRESS.
+- Active implementation milestone: M10; M10.1-M10.5 are COMPLETED. M10.5 passes the approved production config, CSP, retention, telemetry and isolated TLS smoke gates; M10.6-M10.7 remain NOT STARTED.
+- Latest completed milestone: M9 Homepage composition and responsive finish, after final UI finish-gate verification on 2026-10-05. Latest completed task: M10.5 on 2026-10-05; M1-M9 are COMPLETED, M10 remains IN PROGRESS.
 - Implementation must proceed one task at a time and must not skip dependencies.
 
 ## Detailed documents
@@ -519,7 +519,7 @@ Objective: close cross-cutting quality gaps and prove that the portfolio deploym
 | M10.2 | [x]    | Complete customer and admin E2E journeys                               | M9          | Required customer and admin journeys pass from a clean database                                | Full Playwright E2E suite                           |
 | M10.3 | [x]    | Run security and privacy review                                        | M10.1       | No critical finding, secret, unsafe token storage, authorization gap, or sensitive log remains | Dependency scan, static review, abuse tests         |
 | M10.4 | [x]    | Run accessibility, SEO, and performance review                         | M9.6, M10.2 | Critical flows meet WCAG AA checks; metadata is valid; baseline-only performance evidence and material-regression review pass | axe/manual keyboard, Lighthouse, bundle/image audit |
-| M10.5 | [ ]    | Finalize production environment, migrations, health, and observability | M10.1       | Production config fails fast; migrations, request IDs, redaction, health, and metrics work     | Production build and smoke tests                    |
+| M10.5 | [x]    | Finalize production environment, migrations, health, and observability | M10.1       | Production config fails fast; migrations, request IDs, redaction, health, and approved deployment telemetry work | Production build and smoke tests                    |
 | M10.6 | [ ]    | Verify backup, restore, and operational runbook                        | M10.5       | A documented restore rehearsal succeeds and rollback steps are actionable                      | Clean restore and data reconciliation               |
 | M10.7 | [ ]    | Finalize Postman collection and portfolio handoff                      | M10.3-M10.6 | Public/customer/admin examples and environment setup are current and safe                      | Collection run and clean-clone walkthrough          |
 
@@ -682,6 +682,122 @@ M10.4 completion verification: full frontend units 259/259 across 30/30 files, i
 Final E2E output has no credential/hash/cookie/database-URL markers or unexplained browser/server error. Ten Next destination-stream-closed messages are navigation/teardown cancellation from the already-reviewed Next16.3.6 implementation, not API crashes or leaked raw business errors; all page-error assertions and journeys pass. Existing non-failing pg concurrent-query deprecation, Vitest environment optimization, color/EOL notices remain explained and are not fixed by sleeps or dependency churn. The dedicated test DB remains available for inspection; the locally started isolated PostgreSQL cluster is stopped after verification. Reports/traces/screenshots stay in ignored test-results/playwright-report/.cache, not new committed media or benchmark dependencies.
 
 Gate result: accessibility PASS for the reviewed critical states (automated checks, keyboard/artifact review and retained M9 manual evidence; not a universal AT certification), SEO PASS with the explicit diagnostic classifications above, baseline-only performance PASS after fixing the demonstrated CLS defect. No unresolved critical accessibility/SEO issue or material measured performance regression remains. Owner budget/evidence condition and applicable common DoD are satisfied; M10.4 COMPLETED, M10 remains IN PROGRESS, M10.5-M10.7 NOT STARTED. No new owner decision, commit, push or Git config/remote change. Stop here.
+
+### M10.5 preflight / production-policy audit (2026-10-05)
+
+BLOCKED before implementation. Latest root AGENTS/PLAN and the full owner attachment are read; M10.1-M10.4 are COMPLETED. Initial working tree is clean on main `1c5f184d2f4476e8372a19405468f20793afe3ec` (M10.4 commit). Current-HEAD [Actions run 37316540260](https://github.com/lehai260625-dev/MartHub/actions/runs/37316540260) and verify job remain IN PROGRESS at the last preflight check: schema validation/generation/migration, lint, formatting and unit stages pass remotely; integration is running, production build/E2E remain pending. Required green CI is not yet established; previous commit or local M10.4 passes are not substituted.
+
+Read-only audit covers ARCHITECTURE deployment/same-origin/observability boundaries, API authentication/request-ID/health/telemetry contracts, DATABASE RefreshSession/deletion invariants, README and both safe env examples; current API env/auth/media/startup/database/platform/throttle/session implementation and Next rewrite configuration. The deployment-patterns skill informs the checklist, not new Docker/cloud/telemetry architecture. M2/M10.3 explicitly defer the following production conditions to this task; they are not silently cleared:
+
+| Surface | Existing truth / exact owner decision needed |
+| --- | --- |
+| Ingress / rate limiting | Browser API calls use the Next rewrite; Express currently distrusts forwarded headers and auth PostgreSQL buckets use req.ip. API.md requires trusted-edge per-client limits while peer limits are an aggregate bound. Approved topology only names TLS edge/reverse proxy, not its concrete identity contract. Choose the exact production hop/path (including whether /api/v1 is routed directly to Express or through Next), trusted source addresses/private network and prevention of direct untrusted API ingress; specify authoritative client-IP provenance/header overwrite rules. Decide whether Express remains untrusted with enforced edge per-client limiting or adopts a narrowly verified ingress identity mechanism, and approve edge auth endpoint thresholds/windows/bucketing/429 policy and treatment of the aggregate API bound. No broad trust proxy or spoofable forwarded-header fallback. |
+| Web CSP | Next config has rewrite/poweredByHeader settings, not web CSP; API Helmet headers do not secure the Next HTML document. Approve the inline-script strategy (per-response nonce or supported hashes), inline-style policy and exact allowed origins for same-origin runtime/API, Cloudinary delivery and direct signed uploads. Strategy must support existing streaming scripts/JSON-LD and media without unsafe wildcard guesses or breaking Next. No nonce/hash/deployment policy is presently owned by the docs. |
+| Session retention | DATABASE permits deletion only after a documented expired/revoked retention window but supplies no duration, clock anchor or schedule. Approve retention duration and cutoff basis for expired/terminal revoked/replay-family records, whether cleanup waits for absolute family expiry, cadence/operator scheduling and bounded batch policy. ROTATED ancestors still participate in replay-family revocation while descendants are active; do not prune that authoritative lineage or active sessions simply because revokedAt is set. Parent-reference/deletion ordering must preserve the approved lifetime/replay semantics. No unapproved hard deletion or session cleanup runs. |
+| Metrics / telemetry | ARCHITECTURE requires metrics or deploy-platform telemetry and API names latency/error/database baseline, but there is no implemented metrics surface or approved endpoint/format/access policy. Choose bounded application metrics versus explicitly defined deployment telemetry; for application metrics approve path/format/scrape access, required counters/duration representation and bounded labels/aggregation. Include request rate/latency/errors, checkout failures and DB health per the existing architecture, or explicitly settle how those requirements are met. No external APM, raw URL/ID/user/PII labels or invented unauthenticated public metrics endpoint. |
+
+Other preliminary observations, not completion evidence: API startup validates PostgreSQL URL, JWT hex secret, HTTPS production WEB_ORIGIN and Cloudinary config before listen; issuer/audience/lifetimes are existing fixed auth constants, not missing configurable JWT policy. Shipping defaults are already owner-approved business amounts and need production explicitness/default handling reviewed against the new env gate rather than changed amounts. Web metadata/internal origin still have development fallbacks to audit in implementation. Runtime start does not run migrations; existing db:migrate uses prisma migrate deploy. Existing liveness is dependency-free; readiness calls SELECT 1 and normalizes dependency failure to safe 503. Shutdown drains up to ten seconds and disconnects Prisma. Request IDs use the approved bounded validation/generated UUID and response header; logs use metadata allowlists without raw bodies/headers/PII. Existing tests are inventory evidence only, not new production-like smoke or final clearance.
+
+No production/test/schema/API/env/dependency/README/architecture implementation change, database migration/reset, build, smoke or suite was started. Only this PLAN audit/status record changes; git diff --check passes. M10.5 remains BLOCKED until required CI and the four owner policies are settled; M10.6-M10.7 NOT STARTED. No commit, push or Git config/remote change. Stop here.
+
+M10.5 owner resolution / resumed preflight: Actions run 37316540260 and verify job are completed/success on exact main HEAD 1c5f184d2f4476e8372a19405468f20793afe3ec; implementation did not resume until confirmed. Approved edge -> Next -> nonpublic Express, no broad trust proxy/custom signed-IP protocol, edge per-client limits plus existing API aggregate defense; enforced production script nonce CSP with self/nonce scripts, self/unsafe-inline styles and exact necessary media/upload hosts; family retention through absolute expiry/latest relevant revocation plus 30 days, daily bounded 500-row cleanup; bounded structured JSON deployment telemetry, no metrics endpoint/APM/vendor integration. Preserve the historical preflight above; continue only M10.5 and record detailed policies in owning docs.
+
+### M10.5 completion evidence (2026-10-05)
+
+Owner policies above are implemented without starting backup/restore or handoff work.
+Production API requires explicit listener/DB/HTTPS origin, JWT/media credentials
+and shipping amounts; Next build/start requires explicit public HTTPS/private API
+origins. Invalid configuration exits before listen with safe bounded JSON; listen
+failure also closes database resources and IPC. Existing fixed JWT issuer/audience,
+lifetimes, shipping values, auth/RBAC and rate-limit business rules are unchanged.
+Detailed topology/deployment responsibilities belong to ARCHITECTURE.md; CSP and
+telemetry allowlists to API.md; retention/locking to DATABASE.md; release/scheduler
+commands and safe test setup to README/env examples. No schema, migration,
+endpoint, OpenAPI shape or dependency version changed.
+
+Production nonce CSP is enforced on actual Next HTML, not report-only. Proxy
+overwrites supplied headers; framework/custom JSON-LD scripts are nonced; HTML
+is dynamically rendered/private/no-store. Exact Cloudinary display/upload hosts
+are allowed; no unsafe script source/eval/wildcard is added. Zod's optional
+Function JIT capability probe caused a real CSP event despite catching the
+exception; all shared schemas now import a common runtime that configures the
+browser interpreter before construction, retaining server mode and validation
+semantics. A child-process contract regression forbids and counts Function calls,
+proving zero probes while valid/invalid inputs remain strictly validated.
+
+Session cleanup uses database-time family expiry/latest revocation plus 30-day
+grace, deterministic User locks/recheck, leaf-first deletion, <=500 rows per
+transaction and <=20 steps per invocation. Three real PostgreSQL tests prove
+active/future/fully-revoked-future/rotated-lineage and <30-day preservation,
+30-day eligibility, old family deletion, 501-row bounding/repeat/concurrent delete
+and skipping/recovering after an auth owner lock. The explicit cleanup command
+also runs successfully against the isolated smoke DB and reports zero deletions
+for the newly logged-out, retained family. Daily scheduler is deployment-owned.
+
+Verification: full shared units 70/70, backend units/process tests 34/34, frontend
+units 262/262 in 31 files. Full PostgreSQL integration 188/188 in 35/35 files,
+zero failures/skips/cancellations. Dedicated migrated `marthub_m105_integration_test`
+uses the existing per-file reset/seed guard; E2E uses a different
+`marthub_m105_e2e_test`, both loopback port 15432. Existing 15 migrations deploy
+from empty schema and a second deploy has no pending migrations. Schema
+validation/generation also pass. Existing authorization/ownership, checkout,
+audit, price/stock, token/redaction and deterministic concurrency regressions
+remain green; no production behavior is changed to make tests pass.
+
+Focused CSP/security/media/real Customer/Admin journeys pass 4/4 at 360; corrected
+promotion upload fixture passes 1/1. Final complete Playwright gate passes
+180/180 (45/45 at each 360/768/1024/1440), two workers, zero retries/failures/skips,
+separate clean DB/API lifecycles. Every spec retains its existing assertions and
+adds an automatic zero-CSP-event/console-violation guard. It covers actual
+hydration/navigation, immutable data, real Customer/Admin chains, product and
+promotion signed-upload UI with mocked provider replies at the exact approved
+real hosts, Cloudinary delivery policy with an owned image fixture, unique
+nonces/forged-header rejection, keyboard/axe/overflow/media/motion regressions.
+No live provider credential/upload success is claimed. The broad harness keeps
+HTTP loopback/test-mode API fixtures with production Next CSP; production HTTPS
+cookie/security behavior is independently verified by TLS smoke below.
+
+Final production build (contracts/JavaScript/Next16.3.6) passes. Production TLS
+smoke passes twice on distinct fresh empty dedicated test databases, including
+the final built tree: fresh/no-op migrate deploy, approved ten-product seed,
+production API/Next behind ephemeral HTTPS edge, real secure HttpOnly SameSite=Lax
+cookie/path, refresh/logout, liveness/readiness/representative public request,
+valid/generated request IDs, nonce CSP/live hydration/no browser error, safe JSON
+HTTP/startup/readiness/shutdown records, no secret canaries and graceful API exit.
+The smoke refuses nonempty/shared/non-test databases, never truncates, scopes
+self-signed-certificate tolerance to local test clients, and stops its own
+servers. CI now includes this isolated smoke command after E2E, with a separate
+disposable database. Exact-HEAD green remote CI is the preflight run recorded
+above; uncommitted changes have local verification, not a claimed new remote run.
+
+Failure classifications: an initial concurrent integration/E2E invocation wrongly
+shared one disposable DB; reset caused a statistics-fixture FK failure and Admin
+login failure. Those results are discarded, databases separated, and both full
+gates rerun successfully. New JSON-LD test initially sampled hidden streaming
+staging markup; it now waits for staging completion and exactly one script, not
+a first-element workaround. Promotion E2E originally used fake cloudinary.test
+hosts blocked by the approved CSP; its mocked fixture now uses the real adapter
+host/URL convention, with unchanged assertions. Local OpenSSL inherited a missing
+psqlODBC config path; test-process OPENSSL_CONF points to the installed Git OpenSSL
+config. No production policy weakening, sleep/retry masking or business fix.
+
+Root lint, scoped E2E lint, touched-code Prettier and git diff --check pass.
+Full-repo format:check reports 111 untouched Windows CRLF files; warned files do
+not overlap touched files. A read-only HEAD comparison confirms the sampled
+eslint.config.js is LF/formatted in HEAD and differs locally only by CRLF. No
+unrelated formatting or Git setting is changed. Existing non-failing pg
+concurrent-query deprecation, Vitest environment optimization, color/EOL notices
+and Next navigation/teardown destination-close messages remain explained; no
+unexplained API/browser failure or sensitive log is found. Artifacts remain
+ignored. The locally started isolated PostgreSQL cluster is stopped afterwards.
+
+Gate PASS: deferred M10.5 application policies are resolved/cleared under the
+approved private-API/edge assumptions. Actual deployed firewall isolation, edge
+provider thresholds, TLS/log-access controls and daily scheduler must be applied
+and verified by the deployment operator; no real infrastructure deployment is
+claimed. Acceptance and applicable common DoD pass: M10.5 COMPLETED. M10 remains
+IN PROGRESS; M10.6/M10.7 NOT STARTED. No new owner decision, commit, push or Git
+remote/config change. Stop here.
 
 ## Test strategy summary
 

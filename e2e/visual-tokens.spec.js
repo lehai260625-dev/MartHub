@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './helpers/security-test.js';
 import AxeBuilder from '@axe-core/playwright';
 
 test('original brand, system typography and keyboard focus render without overflow', async ({

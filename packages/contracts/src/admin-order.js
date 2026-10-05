@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './schema-runtime.js';
 import { checkoutOrderSchema } from './checkout.js';
 import { moneySchema } from './money.js';
 import { customerOrderStatusSchema } from './orders.js';

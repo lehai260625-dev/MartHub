@@ -1,6 +1,6 @@
-﻿import { expect, test } from '@playwright/test';
+import { expect, test } from './helpers/security-test.js';
 
-const origin = 'http://127.0.0.1:13000';
+const origin = 'https://127.0.0.1:13000';
 
 async function readJsonLd(page, id) {
   return page

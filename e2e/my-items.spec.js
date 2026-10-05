@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './helpers/security-test.js';
 import AxeBuilder from '@axe-core/playwright';
 import { createDatabase } from '../apps/api/src/db/client.js';
 import { validateDatabaseUrl } from '../apps/api/src/config/env.js';

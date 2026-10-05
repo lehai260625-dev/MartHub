@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from './schema-runtime.js';
 import { productCardSchema } from './catalog.js';
 
 export const recommendationsQuerySchema = z.object({}).strict();

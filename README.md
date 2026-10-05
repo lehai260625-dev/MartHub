@@ -38,6 +38,63 @@ The baseline migration creates only the public namespace. Domain tables are intr
 Prisma uses `prisma-client-js` to preserve JavaScript output. The root pins patched
 `deepmerge-ts` and `mysql2` transitive tooling dependencies; recheck those overrides when upgrading Prisma.
 
+## Production configuration and release checks
+
+Local env examples are development-only, not deployable credentials/defaults.
+Set NODE_ENV=production explicitly. API requires HOST, PORT, DATABASE_URL,
+HTTPS WEB_ORIGIN, a unique 64-hex-character AUTH_JWT_SECRET, all three Cloudinary
+credentials and explicit SHIPPING_FIXED_FEE_VND / SHIPPING_FREE_THRESHOLD_VND
+(approved policy: 30000 / 500000). Missing/invalid config fails before listen with
+a safe bounded event, never the supplied value. Next build/start requires HTTPS
+WEB_ORIGIN and explicit server-only API_INTERNAL_ORIGIN. Keep the same public and
+private origins for build/start: rewrites are part of the production build.
+
+Deploy Internet -> TLS edge -> Next -> private Express. Restrict the API
+listener/service via networking/firewall to the web tier; expose no public API
+port/alternate hostname. Do not enable broad trust proxy or accept client-provided
+forwarded IP identity. Configure authoritative per-client limits at the chosen
+edge, including auth-sensitive routes and its 429/Retry-After behavior. API peer
+limits are additional aggregate defense, not original-client protection. Provider
+rule values and proof of deployed bypass prevention remain the deployment
+operator's responsibility, not hard-coded application cloud-vendor logic.
+
+Release order: install from lockfile (`npm ci`); validate/generate Prisma;
+`npm run db:migrate` (migrate deploy, never migrate dev/reset); `npm run build`
+with explicit web origins; start the API and web with their production env.
+Do not seed production automatically. Run migrations with release credentials
+and runtime with least-privilege credentials where supported. Health checks may
+reach the private API or same-origin proxy: live confirms app/process, ready
+confirms DB SELECT 1. Keep traffic gated on readiness, not merely liveness.
+SIGINT/SIGTERM use the same ten-second request drain and database disconnect.
+
+Nonce HTML is dynamically rendered and private/no-store; do not shared-cache it.
+The [CSP/telemetry contract](docs/API.md#production-browser-security-and-telemetry)
+defines exact Cloudinary hosts, script nonces and safe JSON fields. Ingest API
+stdout/stderr with operational-only access. Group HTTP records by bounded route,
+method/status/code for counts/latency/error rates; requestId is correlation only.
+Correlate db_readiness_failed/503 against startup/config/shutdown events when
+diagnosing DB or private-service failures. No public metrics endpoint is added.
+
+Schedule daily `npm run sessions:cleanup --workspace @marthub/api` with DB env only.
+The [family retention rule](docs/DATABASE.md#refresh-session-retention-and-cleanup)
+preserves replay lineage and 30-day grace. Steps delete at most 500 rows; each
+invocation runs at most 20 steps. Check the safe JSON summary and rerun while
+batchLimitReached is true; never manually prune rotated ancestors or active
+sessions. Scheduler/log collection/network policy are deployment-owned.
+
+Production-like TLS smoke (test-only, never a shared or production database):
+create an empty, exclusively owned loopback database with `test` in its name;
+set DATABASE_URL and MARTHUB_E2E_RESET_DATABASE=1 in a non-production shell,
+build with API_INTERNAL_ORIGIN=http://127.0.0.1:4000 and explicit HTTPS WEB_ORIGIN,
+then run `npm run test:production-smoke`. It requires OpenSSL on PATH (or
+MARTHUB_TEST_OPENSSL), Chromium, and free ports 4000/13000/13002. The harness
+applies fresh migrations then verifies no-op, seeds only the approved test
+baseline, uses ephemeral test TLS, production API/Next and verifies secure auth
+cookies, CSP/hydration, health, safe telemetry and shutdown. It does not truncate
+an existing DB or prove a real deployed firewall/edge rule. Certificate exception
+is scoped to its local test clients, never NODE_TLS_REJECT_UNAUTHORIZED globally.
+Use separate databases for concurrent integration/E2E/smoke invocations.
+
 ## Media cleanup recovery
 
 Set the server-only Cloudinary variables from `apps/api/.env.example`. The API

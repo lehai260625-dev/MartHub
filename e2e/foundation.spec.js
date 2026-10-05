@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/security-test.js';
 import AxeBuilder from '@axe-core/playwright';
 
 test('storefront renders accessibly and recovers from missing pages', async ({
