@@ -171,6 +171,17 @@ test('Customer address/cart loading, errors/retry, authoritative default, menu a
   await page.route('**/api/v1/wishlist', (route) =>
     response(route, { data: { id: null, items: [], itemCount: 0 } }),
   );
+  // This chrome fixture uses a fake session; keep new homepage private reads
+  // inside that fixture rather than sending its token to the real auth server.
+  await page.route('**/api/v1/users/me/items?*', (route) =>
+    response(route, {
+      data: [],
+      meta: { page: 1, perPage: 20, totalItems: 0, totalPages: 0 },
+    }),
+  );
+  await page.route('**/api/v1/users/me/recommendations', (route) =>
+    response(route, { data: { label: 'POPULAR', products: [] } }),
+  );
   await page.route('**/api/v1/cart', async (route) => {
     await gate;
     return response(

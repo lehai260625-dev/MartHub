@@ -70,8 +70,10 @@ test('real homepage data selects backend stories/categories, verifies links and 
 }) => {
   const payload = await (await request.get('/api/v1/homepage')).json();
   await page.goto('/');
-  await expect(page.locator('.home-promo')).toHaveCount(3);
-  expect(await page.locator('.home-promo h2').allTextContents()).toEqual([
+  await expect(page.locator('.home-mosaic .home-promo')).toHaveCount(3);
+  expect(
+    await page.locator('.home-mosaic .home-promo h2').allTextContents(),
+  ).toEqual([
     'Make room for small rituals',
     'A calmer workday',
     'Carry what matters',
@@ -144,12 +146,10 @@ test('fallback selection, long copy, broken media and eight parent shortcuts ret
     await route.fulfill({ status: 404, body: '' });
   });
   await page.goto('/');
-  await expect(page.locator('.home-promo')).toHaveCount(3);
-  expect(await page.locator('.home-promo h2').allTextContents()).toEqual([
-    a.title,
-    'MartHub story 2',
-    'MartHub story 3',
-  ]);
+  await expect(page.locator('.home-mosaic .home-promo')).toHaveCount(3);
+  expect(
+    await page.locator('.home-mosaic .home-promo h2').allTextContents(),
+  ).toEqual([a.title, 'MartHub story 2', 'MartHub story 3']);
   const before = await page.locator('.home-primary .home-media').boundingBox();
   release();
   await expect(page.locator('.home-primary img')).toHaveCount(0);

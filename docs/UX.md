@@ -214,13 +214,13 @@ Homepage modules follow this order:
 1. Two-tier header and search.
 2. MartHub promotional mosaic with one primary and up to two secondary promotions.
 3. Featured category shortcuts.
-4. Deals product rail.
-5. Signed-in Reorder rail; guests and customers without delivered purchases receive an accurately labeled popular-products fallback.
-6. Seasonal editorial promotion band.
-7. New Products rail.
-8. Popular Products rail.
-9. At most one trust or service band, shown only for policies MartHub actually offers.
-10. Full footer.
+4. Deals.
+5. Customer-only Mua lại, when eligible items exist.
+6. Recommendations with authoritative personalized/popular labeling.
+7. New Products.
+8. Popular Products.
+9. Conditional combined editorial/seasonal promotion band.
+10. Full footer. No service band is added by M9.4.
 
 Module rules:
 
@@ -264,6 +264,39 @@ Exact owner decisions required:
 6. **Destination validity:** current Admin validation rejects external/protocol-relative/unsafe paths but permits arbitrary internal paths (for example a nonexistent page); it does not guarantee an existing public route or an active category/product target. Define the M9.3 permitted storefront destination surface and handling for unsupported/nonexistent/unavailable targets (omit tile, non-link content, or another explicitly approved behavior). Do not invent a replacement destination or silently broaden backend validation/lookup scope. Category shortcuts can use the existing /category/[slug] route for authoritative active categories.
 
 The frontend-a11y skill was used only to confirm native link/heading semantics, purposeful/decorative alt behavior, focus and reduced-motion requirements. No composition, asset, content choice or code was introduced at this stop gate. Task status/evidence are owned by [PLAN.md](./PLAN.md).
+
+### M9.4 finalized module contract
+
+Owner approval on 2026-10-05 resolves the historical BLOCKED audit below. Preserve M9.1 tokens, M9.2 chrome and M9.3 mosaic/categories. Product modules follow the order above, consume only existing authoritative API projections (see [API.md](./API.md)), and show at most eight cards each. Reuse ProductCard/current exact VND and availability; never infer discounts, ratings, campaigns or recommendation rules. Responsive grids are approved for M9.4 (two columns on mobile, three at 768, four at 1024+); later rail/control polish remains M9.5. Native links/buttons, visible focus, stable media boxes, reduced motion and no document overflow remain required.
+
+- Deals uses homepage.deals only and has no view-all destination. New uses homepage.newProducts with /search?sort=newest; Popular uses homepage.popularProducts with /search?sort=popular. Both sorts exist in the catalog contract.
+- Mua lại is a separate Customer-only section: use the existing recent first page of delivered My Items (default 20), retain only IN_STOCK entries with purchasable currentProduct, then cap at eight. No extra fetch/backfill; historical unavailable/out-of-stock entries cannot appear as purchasable homepage cards. Its view-all is /account/my-items?tab=reorder.
+- Customer recommendations use the query-free M7.6 response: PERSONALIZED is “Gợi ý cho bạn”; POPULAR is “Sản phẩm phổ biến”. No view-all. Guest/Admin reuse homepage.popularProducts as an honestly labeled public recommendation fallback, never private history. During auth bootstrap/error public modules remain usable without private requests/data. Private queries are identity-scoped; independent loading and safe section-level error/retry leave public content intact. Failed Customer requests are not relabeled POPULAR.
+- Deduplicate visible products in priority Deals > Mua lại > Recommendation > New > Popular, preserving source order. Do not fetch or substitute another dataset to fill gaps. Empty sections are omitted, including sections emptied by dedup; partial sections are allowed.
+- There is no authoritative seasonal field. The single editorial/seasonal band follows product sections and consumes at most two remaining EDITORIAL promotions in response order, excluding IDs selected by the mosaic. No invented seasonal heading/claims or season filtering; supplied title/subtitle/media only. Zero omits, one/two renders exactly that many tiles. Individual CTAs reuse the M9.3 destination verification contract; no band view-all or duplicate mosaic promotion. Original MH media fallback and solid copy areas are reused; no new asset/backend contract.
+
+### M9.4 pre-implementation module audit (2026-10-05)
+
+Historical audit only: the owner-approved contract above resolves these decisions; implementation verification is recorded below and in PLAN.md.
+
+Status: BLOCKED before implementation. M9.3 is complete and unchanged. Existing homepage order already owns chrome -> mosaic -> categories -> Deals -> Reorder/popular fallback -> seasonal editorial band -> New Products -> Popular Products -> optional truthful service band -> footer. M9.4's PLAN row additionally names seasonal and editorial separately; their relationship/order needs the decision below, not an invented extra band. M9.1 tokens/provenance and M9.2 chrome remain authoritative. Existing rail rules already require no autoplay, desktop named previous/next controls with disabled boundaries, natural mobile horizontal scroll/snap, visible focus and reduced motion; these accessibility constraints are not reopened.
+
+Settled sources/semantics: /homepage data.deals, data.newProducts and data.popularProducts are bounded to twelve cards each and already enforce current public catalog/category ancestry, current prices and inventory availability. Deals use authoritative current compare-at price, not featured=true; ProductCard shows compare-at only when greater than current exact VND price. New/popular use backend curated flags, not client date/ranking heuristics. Empty public datasets remove their module. /users/me/items and /users/me/recommendations are Customer-only/no-store. Items default recent/page 1/perPage 20 (max 50), retain authoritative historical identity and explicit unavailable state. Recommendations return at most eight current eligible cards and an authoritative PERSONALIZED or POPULAR label; PERSONALIZED is nonempty and excludes previously purchased delivered products, so recommendations cannot themselves be relabeled Reorder. Guest must never request Customer endpoints or appear personalized. Existing My Items UI renders purchase entries and a homepage-popular recovery, but has no homepage recommendation composition; it is not approval for new homepage source selection.
+
+No seasonal dataset or authoritative seasonal marker is present in the homepage/shared schemas or Promotion model. Promotion placement is only HERO_PRIMARY, HERO_SECONDARY or EDITORIAL; schedule describes eligibility, not a season. M9.3 may already consume EDITORIAL rows as primary/secondary fallback. Current /search contract supports new/popular/featured but no deals filter or full-deals route. ProductCard can be reused for public current cards (exact money, wishlist/add, truthful out-of-stock and original null-media fallback); no reusable homepage rail is implemented yet.
+
+Exact owner decisions required before implementation:
+
+1. **Reorder versus recommendations composition:** specify whether the Customer slot displays owned /users/me/items purchases, /users/me/recommendations candidates, or two separate sections, with exact section order and truthful labels. Choose homepage items sort/page/perPage and display count; decide how its unavailable historical entries appear on this surface. Preserve My Items snapshot semantics and API recommendation labels/ranking; no frontend recommendation logic or contract change is implied.
+2. **Auth/fallback behavior:** confirm the guest popular slot uses /homepage popularProducts and its display bound; define bootstrap/auth-error and Admin-on-storefront presentation without Customer reads or guest flashes. Define the Customer empty-items/POPULAR-empty and failed-private-read presentation: which section is omitted, whether a public popular fallback is permitted, and its label/recovery when empty. Existing local error/retry/loading semantics remain required, not optional; a failed read must not silently imply no history.
+3. **Seasonal source and seasonal/editorial relationship:** identify an existing authoritative source/marker that can honestly support a Seasonal label, or explicitly approve omission until such a source exists. If existing EDITORIAL content should form a neutral thematic band instead, approve its non-seasonal label and whether it is the same band as editorial or a separate module, including exact position. Never infer season from browser dates, schedule windows, title keywords or categories. Any new backend field/endpoint/contract needs separate owner authority before implementation.
+4. **Editorial selection/content:** specify permitted placement(s), visible count, selection in backend order and whether promotions consumed by the M9.3 mosaic are excluded or may repeat. Approve reuse of M9.3 opaque-copy/media fallback/destination-safety rules (or explicit differences), section heading and band arrangement. Empty omission is already settled; do not invent editorial copy/assets or destinations to fill it.
+5. **Product bounds and duplicate policy:** approve visible caps for Deals/New/Popular (API caps are twelve, not a finalized UI count), purchase rail and recommendation slot (API cap eight), preserving authoritative order. Decide whether a product may repeat across Deals/Reorder/recommendation/New/Popular, and whether identical POPULAR fallback and lower Popular modules repeat, merge or suppress one another. Any dedup precedence must be explicit, without new ranking or unbounded fetch-to-fill.
+6. **View-all CTA contract:** specify an existing destination or explicit CTA omission for each section. Deals cannot use featured=true or an unimplemented deals filter/page; /search?new=true and /search?popular=true exist but are not yet approved homepage CTA mappings. My Items has a real /account/my-items?tab=reorder destination; recommendations have no dedicated listing route. Editorial/seasonal actions must use approved real destinations, never guessed anchors or pages.
+
+The frontend-a11y skill confirmed native links/heading order, named rail controls, disabled boundaries and focus/reduced-motion expectations. No code, assets, endpoint, campaign label or business-rule selection was introduced at this stop gate. Task status and checks are owned by [PLAN.md](./PLAN.md).
+
+M9.4 verification (2026-10-05): bounded modules/dedup, honest recommendation labels, independent Customer loading/error/retry, non-Customer privacy, strict clients, exact VND/current availability and editorial exclusion pass automated coverage. Responsive grids preserve fixed ProductCard media and semantic h3 card headings under h2 sections; the editorial band reuses original MH media fallback and the same verified destination actions as the mosaic. Required-width browser checks pass keyboard/focus, reduced motion, axe and no document overflow. Populated/partial/recovery desktop/mobile screenshots were visually reviewed. Existing chrome/catalog/My Items/shopping behavior remains verified; no API contract, new campaign asset or M9.5 polish is introduced. Detailed counts/status belong to [PLAN.md](./PLAN.md).
 
 ## Product Card Contract
 

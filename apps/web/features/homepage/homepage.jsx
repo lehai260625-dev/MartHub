@@ -10,6 +10,8 @@ import {
 } from '@marthub/contracts';
 import { api } from '../../lib/api/client';
 import { promotionDestination, selectPromotions } from './homepage-model';
+import { ProductModules } from './product-modules';
+import { selectEditorial } from './homepage-modules';
 
 export function HomeMedia({ image, primary = false }) {
   const [failed, setFailed] = useState(false);
@@ -70,8 +72,9 @@ function PromotionAction({ promotion }) {
   );
 }
 
-export function HomepageContent({ data }) {
+export function HomepageContent({ data, children }) {
   const tiles = selectPromotions(data.promotions);
+  const editorial = selectEditorial(data.promotions, tiles);
   const categories = data.categories.slice(0, 8);
   return (
     <>
@@ -139,6 +142,28 @@ export function HomepageContent({ data }) {
           <p className="home-category-empty">Danh mục đang được cập nhật.</p>
         )}
       </section>
+      {children}
+      {editorial.length ? (
+        <div className="home-editorial">
+          {editorial.map((promotion) => (
+            <article className="home-promo" key={promotion.id}>
+              <HomeMedia
+                key={promotion.image?.url || 'missing'}
+                image={promotion.image}
+              />
+              <div className="home-promo-copy">
+                <h2 className="home-clamp">{promotion.title}</h2>
+                {promotion.subtitle ? (
+                  <p className="home-clamp">{promotion.subtitle}</p>
+                ) : null}
+                <div className="home-promo-actions">
+                  <PromotionAction promotion={promotion} />
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
     </>
   );
 }
@@ -184,5 +209,9 @@ export function Homepage() {
         <Welcome />
       </>
     );
-  return <HomepageContent data={query.data.data} />;
+  return (
+    <HomepageContent data={query.data.data}>
+      <ProductModules data={query.data.data} />
+    </HomepageContent>
+  );
 }

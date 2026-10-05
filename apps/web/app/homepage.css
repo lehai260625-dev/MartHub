@@ -183,6 +183,56 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* M9.4 bounded product grids and remaining editorial stories. No new artwork. */
+.home-products,
+.home-editorial {
+  margin-top: var(--mh-space-8);
+}
+.home-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--mh-space-4);
+  list-style: none;
+  padding: 0;
+}
+.home-product-grid > li,
+.home-product-grid .product-card {
+  min-width: 0;
+  height: 100%;
+}
+.home-product-grid .product-card-body {
+  padding: var(--mh-space-3);
+  overflow-wrap: anywhere;
+}
+.home-editorial {
+  display: grid;
+  gap: var(--mh-space-4);
+}
+.home-private-state {
+  min-height: 10rem;
+  padding: var(--mh-space-4);
+  border: 1px solid var(--mh-border);
+  border-radius: var(--mh-radius-md);
+}
+.home-private-state h2 {
+  font-size: var(--text-xl);
+  font-weight: var(--mh-weight-semibold);
+  margin-bottom: var(--mh-space-4);
+}
+@media (min-width: 768px) {
+  .home-product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .home-editorial {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .home-product-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
 @media (min-width: 1024px) {
   .home-mosaic {
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);

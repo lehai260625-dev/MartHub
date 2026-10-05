@@ -12,6 +12,10 @@ import {
 } from '../features/homepage/homepage-model';
 import { homepageResponseSchema } from '@marthub/contracts';
 
+vi.mock('../features/auth/auth-provider', () => ({
+  useAuth: () => ({ status: 'guest', user: null }),
+}));
+
 const promo = (
   id,
   placement = 'HERO_PRIMARY',
