@@ -189,22 +189,6 @@
 .home-editorial {
   margin-top: var(--mh-space-8);
 }
-.home-product-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--mh-space-4);
-  list-style: none;
-  padding: 0;
-}
-.home-product-grid > li,
-.home-product-grid .product-card {
-  min-width: 0;
-  height: 100%;
-}
-.home-product-grid .product-card-body {
-  padding: var(--mh-space-3);
-  overflow-wrap: anywhere;
-}
 .home-editorial {
   display: grid;
   gap: var(--mh-space-4);
@@ -221,16 +205,8 @@
   margin-bottom: var(--mh-space-4);
 }
 @media (min-width: 768px) {
-  .home-product-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
   .home-editorial {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (min-width: 1024px) {
-  .home-product-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 @media (min-width: 1024px) {
@@ -278,5 +254,134 @@
   }
   .home-category-grid {
     grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+
+/* M9.5 native rails: CSS equal-height row, bounded tracks, no carousel runtime. */
+.home-page {
+  --home-card-width: clamp(160px, calc(125px + 9.77vw), 230px);
+}
+.home-rail-wrap {
+  min-width: 0;
+  contain: layout paint;
+  /* Contain intentional scroll-track overflow, with room for every focus ring. */
+  overflow: clip;
+  padding: 4px;
+  margin: -4px;
+}
+.home-product-rail,
+.home-rail-skeletons {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--home-card-width);
+  align-items: stretch;
+  gap: var(--mh-space-4);
+  overflow-x: auto;
+  padding: 4px;
+  margin: -4px;
+  list-style: none;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 4px;
+  scrollbar-width: thin;
+}
+.home-product-rail > li {
+  min-width: 0;
+  scroll-snap-align: start;
+}
+.home-product-rail .product-card {
+  height: 100%;
+  overflow: visible;
+}
+.home-product-rail .product-media {
+  border-radius: var(--mh-radius-md) var(--mh-radius-md) 0 0;
+}
+.home-product-rail .product-card-body {
+  padding: var(--mh-space-3);
+  overflow-wrap: anywhere;
+}
+.home-product-rail .product-price-slot {
+  min-height: 8rem;
+}
+.home-product-rail .product-price-slot > p:first-child {
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+}
+.home-product-rail .product-card-body > p:first-of-type {
+  min-height: 2.5rem;
+}
+.home-product-rail .product-name {
+  padding: 4px;
+  margin: -4px;
+  min-height: calc(3rem + 8px);
+  display: block;
+  overflow: visible;
+}
+.home-product-rail .product-name a {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.home-product-rail .action-feedback {
+  height: 3.75rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.home-product-rail .wishlist-feedback {
+  max-width: calc(var(--home-card-width) - 16px);
+  z-index: 1;
+}
+.home-rail-controls {
+  display: none;
+  gap: var(--mh-space-2);
+  justify-content: flex-end;
+  margin-bottom: var(--mh-space-4);
+}
+.home-rail-controls button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--mh-primary);
+  border-radius: var(--mh-radius-sm);
+  background: var(--mh-surface);
+  color: var(--mh-primary);
+  font-size: var(--text-xl);
+  cursor: pointer;
+}
+.home-rail-controls button:disabled {
+  background: var(--mh-disabled-background);
+  color: var(--mh-disabled-text);
+  cursor: default;
+}
+.home-rail-skeletons {
+  pointer-events: none;
+  overflow: hidden;
+  margin-top: var(--mh-space-4);
+}
+.home-card-skeleton {
+  border: 1px solid var(--mh-border);
+  border-radius: var(--mh-radius-md);
+  overflow: hidden;
+}
+.home-skeleton-media {
+  aspect-ratio: 1;
+  background: var(--mh-surface-subtle);
+}
+.home-skeleton-body {
+  height: 24rem;
+  background: var(--mh-surface);
+}
+@media (min-width: 768px) {
+  .home-products,
+  .home-categories,
+  .home-editorial {
+    margin-top: var(--mh-space-12);
+  }
+  .home-rail-controls {
+    display: flex;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-product-rail {
+    scroll-behavior: auto;
   }
 }

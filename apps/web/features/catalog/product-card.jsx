@@ -1,6 +1,7 @@
 ﻿import Link from 'next/link';
 import { formatVnd } from './catalog-query';
 import { AddToCartButton, WishlistButton } from '../shopping/shopping-actions';
+import { ProductMedia } from './product-media';
 
 export function ProductCard({ product, headingLevel = 2, prefetch }) {
   const Heading = `h${headingLevel}`;
@@ -20,15 +21,10 @@ export function ProductCard({ product, headingLevel = 2, prefetch }) {
           className="product-media"
           href={`/products/${product.slug}`}
         >
-          {product.image ? (
-            // Catalog image hosts are controlled by the server-side media adapter.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img alt={product.image.altText} src={product.image.url} />
-          ) : (
-            <span aria-hidden="true" className="product-placeholder">
-              MH
-            </span>
-          )}
+          <ProductMedia
+            key={product.image?.url || 'missing'}
+            image={product.image}
+          />
         </Link>
         {product.badges.length > 0 ? (
           <ul aria-label="Product labels" className="product-badges">
@@ -40,7 +36,7 @@ export function ProductCard({ product, headingLevel = 2, prefetch }) {
         <WishlistButton className="absolute right-2 top-2" product={product} />
       </div>
       <div className="product-card-body">
-        <div className="min-h-14">
+        <div className="product-price-slot min-h-14">
           <p className="text-xl font-bold text-ink">
             {formatVnd(product.price)}
           </p>

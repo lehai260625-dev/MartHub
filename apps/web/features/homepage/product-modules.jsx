@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../auth/auth-provider';
 import { ProductCard } from '../catalog/product-card';
 import { selectProductModules } from './homepage-modules';
+import { ProductRail } from './product-rail';
 
 function PrivateState({ query, title, id }) {
   return (
@@ -19,7 +20,17 @@ function PrivateState({ query, title, id }) {
     >
       <h2 id={`home-${id}`}>{title}</h2>
       {query.isPending ? (
-        <p role="status">Đang tải…</p>
+        <>
+          <p role="status">Đang tải…</p>
+          <div className="home-rail-skeletons" aria-hidden="true">
+            {[0, 1, 2, 3].map((index) => (
+              <div className="home-card-skeleton" key={index}>
+                <div className="home-skeleton-media" />
+                <div className="home-skeleton-body" />
+              </div>
+            ))}
+          </div>
+        </>
       ) : (
         <div role="alert">
           <p>Không tải được nội dung này.</p>
@@ -104,7 +115,7 @@ export function ProductModules({ data }) {
             </Link>
           ) : null}
         </div>
-        <ul className="home-product-grid">
+        <ProductRail title={module.title} id={`home-rail-${module.id}`}>
           {module.products.map((product) => (
             <li key={product.id}>
               <ProductCard
@@ -114,7 +125,7 @@ export function ProductModules({ data }) {
               />
             </li>
           ))}
-        </ul>
+        </ProductRail>
       </section>
     );
   });
