@@ -293,6 +293,9 @@ test('equal media/cards, full exact prices, missing/broken images and action fee
     cards = rail.locator('.product-card');
   const first = cards.first(),
     add = first.getByRole('button', { name: /Add Long/ });
+  await expect(page.getByRole('main')).toHaveAttribute('lang', 'vi');
+  await expect(first).toHaveAttribute('lang', 'en');
+  expect(await add.evaluate((node) => node.closest('[lang]').lang)).toBe('en');
   await expect(add).toBeEnabled();
   await expect(cards.nth(1).locator('img')).toHaveCount(0);
   await expect(cards.nth(1).getByText('MH')).toBeVisible();

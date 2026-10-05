@@ -509,6 +509,16 @@ M9.1 verification on 2026-10-05: the documented allowed pairings and original-so
 
 ## Visual QA Matrix
 
+### M9.6 final UI review (2026-10-05)
+
+The available UI Designer and UI Finish-Gate Reviewer independently inspected the finalized M9.1-M9.5 contracts, implementation/state tests and actual screenshots at 360/768/1024/1440. The Designer returned PASS with no blocking visual finding. The Finish-Gate Reviewer initially returned FAIL for English ProductCard operational copy inheriting the Vietnamese homepage language; after the scoped `lang="en"` annotation and regression assertions, its final review returned PASS. No unresolved critical UI finding or new owner decision remains; executed verification outcomes and milestone status are owned by [PLAN.md](./PLAN.md).
+
+The product-specific review contract is search-first single-vendor discovery and repeat purchase: prominent search plus truthful delivery/account/cart, bounded authoritative promotion/category context, exact-price/current-stock native rails, independently labeled repurchase/recommendations and a conditional opaque-copy editorial band. Original teal/orange wordmark/MH, restrained radius/type/focus/spacing and distinct desktop/mobile composition satisfy the non-copy guardrails. Both reference images were used only for comparison; no proprietary asset, campaign, rating, shipping promise, seasonal claim or fake destination was introduced.
+
+Reviewed state evidence includes seeded/Guest and Customer PERSONALIZED/POPULAR homes, Admin storefront, auth recovery, default/no-address/error delivery and cart loading/retry, mobile drawer, empty/partial/error promotions and categories, private loading/empty/error, broken/missing media, unavailable stock, long copy and large exact VND. Browser interaction evidence covers keyboard/Escape/focus return, native touch/scroll, arrow boundaries/resize, visible unclipped focus, reduced motion, axe and no page overflow. Related search/PDP/My Items/cart/checkout/account checks remain part of the gate, without expanding business semantics. Approved price/feedback reserves intentionally leave room for long values; that whitespace is not a redesign finding.
+
+Screenshots in ignored `test-results/m92-*`, `m93-*`, `m94-*` and `m95-*` capture the final tested surfaces and state fixtures. They support human visual acceptance, not a claimed committed-baseline pixel diff. The frontend-a11y/browser-qa skills guide native semantics, scoped language, focus, state/viewport coverage and safe local-test verification. Axe does not replace the keyboard/semantic review or certify all assistive technologies; performance/deployment clearance remains M10 rather than an invented M9.6 requirement.
+
 ### M9.1 pre-implementation visual audit (2026-10-04)
 
 Historical status: BLOCKED pending owner decisions, resolved by the finalized system above on 2026-10-05. Existing implementation values below are observations, not approved final design tokens. The design-system audit found no separate brand specification or approved semantic token table at preflight.

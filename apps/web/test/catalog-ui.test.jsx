@@ -71,6 +71,22 @@ describe('catalog URL state', () => {
 });
 
 describe('M3.6 catalog components', () => {
+  it('declares English operational copy within a Vietnamese homepage', () => {
+    render(
+      <main lang="vi">
+        <ProductCard product={product} headingLevel={3} />
+      </main>,
+      { wrapper: ShoppingTestShell },
+    );
+    const card = screen.getByRole('article');
+    expect(card).toHaveAttribute('lang', 'en');
+    expect(screen.getByText('In stock').closest('[lang]')).toBe(card);
+    for (const button of within(card).getAllByRole('button')) {
+      expect(button.closest('[lang]')).toBe(card);
+    }
+    expect(screen.getByRole('main')).toHaveAttribute('lang', 'vi');
+  });
+
   it('renders the stable public ProductCard anatomy and truthful unavailable actions', () => {
     const { rerender } = render(<ProductCard product={product} />, {
       wrapper: ShoppingTestShell,

@@ -13,7 +13,7 @@ export function ProductCard({ product, headingLevel = 2, prefetch }) {
   const available = product.availability.canAddToCart;
 
   return (
-    <article className="product-card">
+    <article className="product-card" lang="en">
       <div className="relative">
         <Link
           prefetch={prefetch}
