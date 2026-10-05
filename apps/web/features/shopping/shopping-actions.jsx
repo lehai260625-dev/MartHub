@@ -115,7 +115,9 @@ export function AddToCartButton({ product, quantity = 1, className = '' }) {
       <button
         aria-label={
           available
-            ? `Add ${product.name} to cart`
+            ? shopping.cartPending
+              ? `Adding…: ${product.name}`
+              : `Add to cart: ${product.name}`
             : `${product.name} is out of stock`
         }
         className="button-primary w-full"

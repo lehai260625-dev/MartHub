@@ -25,14 +25,15 @@ export default async function SearchPage({ searchParams }) {
         aria-labelledby="catalog-search-title"
       >
         <div className="mx-auto max-w-7xl px-4 md:px-6">
-          <h1 className="sr-only" id="catalog-search-title">
+          <span className="sr-only" id="catalog-search-title">
             Search MartHub
-          </h1>
+          </span>
           <form
             action="/search"
             className="flex flex-col gap-2 sm:flex-row"
             method="get"
             role="search"
+            aria-label="Catalog search"
           >
             <label className="sr-only" htmlFor="catalog-search-input">
               Search products

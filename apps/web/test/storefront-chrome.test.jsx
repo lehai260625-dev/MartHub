@@ -264,8 +264,10 @@ describe('M9.2 storefront contracts', () => {
     }));
     mount();
     const trigger = screen.getByRole('button', {
-      name: 'Mở điều hướng và tài khoản',
+      name: 'Menu — Mở điều hướng và tài khoản',
     });
+    expect(trigger).toHaveTextContent('Menu');
+    expect(trigger.getAttribute('aria-label')).toContain(trigger.textContent);
     fireEvent.click(trigger);
     const dialog = screen.getByRole('dialog', { name: 'Điều hướng MartHub' });
     expect(within(dialog).getByText('Đăng nhập')).toHaveAttribute(

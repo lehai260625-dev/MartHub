@@ -553,3 +553,11 @@ The UI finish gate must record screenshots and interaction evidence for these ca
 | Admin shell | Yes | Yes | Yes | Yes | Tables remain operable; narrow-screen alternative; validation/error states; no destructive-action ambiguity |
 
 Across all rows, verify keyboard-only operation, focus visibility, accessible names, automated accessibility checks, nonblank rendered media, text truncation, and absence of incoherent overlap. Any failed required check prevents the corresponding implementation task from being marked complete.
+
+### M10.4 accessibility / loading stability refinement
+
+Search exposes one results H1 and distinguishes the Storefront search and Catalog search landmarks. Mobile Menu and Add to cart accessible names include their visible labels; pending cart text remains reflected in its name. No cart/auth/business behavior changes.
+
+The homepage now bootstraps only the existing schema-validated public homepage response at request time, not at build time. This avoids the short loading page/footer shifting when full public merchandising arrives. The same client query still revalidates immediately; Customer data stays independently authenticated and client-only. Failed server bootstrap retains the existing client loading/error/retry path. Successful bootstrap remains usable during pending revalidation, and existing safe error/retry behavior is preserved. No campaign ordering, freshness contract, private projection, API or caching policy is changed.
+
+M10.4 measurement/review evidence, qualifications and task status are owned by [PLAN.md](./PLAN.md). Baseline-only performance review does not introduce numeric product budgets or replace the existing accessibility requirements.

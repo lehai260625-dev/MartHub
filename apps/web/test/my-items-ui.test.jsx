@@ -166,7 +166,7 @@ test('URL defaults, sort/page links, authoritative current card and historical p
     expect.anything(),
   );
   fireEvent.click(
-    screen.getByRole('button', { name: 'Add Current mug to cart' }),
+    screen.getByRole('button', { name: 'Add to cart: Current mug' }),
   );
   await waitFor(() =>
     expect(mocks.shopping.addToCart).toHaveBeenCalledWith(product, 1),

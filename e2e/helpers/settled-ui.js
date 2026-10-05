@@ -18,3 +18,10 @@ export async function waitForSettledUi(page) {
     )
     .toBe(0);
 }
+
+export async function openHomepage(page) {
+  await page.goto('/');
+  // Next moves resolved hidden staging markup into the visible boundary.
+  // Do not sample duplicate staging nodes before this real lifecycle completes.
+  await expect(page.locator('[hidden][id^="S:"]')).toHaveCount(0);
+}

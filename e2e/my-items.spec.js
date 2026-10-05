@@ -185,7 +185,7 @@ test('My Items tabs, historical provenance, current availability and owned detai
     ).toBe(true);
     await audit(page);
     await purchased
-      .getByRole('button', { name: 'Add Available mug to cart' })
+      .getByRole('button', { name: 'Add to cart: Available mug' })
       .click();
     await expect(page.getByLabel('1 items in cart')).toBeVisible();
     const wishlistTab = page

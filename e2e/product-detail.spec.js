@@ -35,7 +35,7 @@ test('guest opens an active product from search and sees a usable missing-image 
   await expect(product.getByText('In stock')).toBeVisible();
   await expect(product.getByLabel('Quantity')).toBeEnabled();
   const addToCart = product.getByRole('button', {
-    name: 'Add Cove Stoneware Mug to cart',
+    name: 'Add to cart: Cove Stoneware Mug',
     exact: true,
   });
   await expect(addToCart).toBeEnabled();

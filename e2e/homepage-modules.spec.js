@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { waitForSettledUi } from './helpers/settled-ui.js';
+import { openHomepage, waitForSettledUi } from './helpers/settled-ui.js';
 
 const id = (n) => `da7a0000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const product = (n, available = true) => ({
@@ -157,7 +157,7 @@ test('guest public rhythm, exact prices, duplicate exclusion and editorial desti
   page,
 }) => {
   const requests = await fixture(page);
-  await page.goto('/');
+  await openHomepage(page);
   await expect(page.locator('.home-products')).toHaveCount(3);
   expect(await page.locator('.home-products h2').allTextContents()).toEqual([
     'Deals',
@@ -226,7 +226,7 @@ test('Customer separate repurchase and truthful personalized/popular fallback, b
       json: { data: { label, products: [product(6), product(9)] } },
     }),
   );
-  await page.goto('/');
+  await openHomepage(page);
   await expect(
     page.locator('.home-products-repurchase .product-card'),
   ).toHaveCount(1);
@@ -291,10 +291,10 @@ test('private loading/error/retry and empty purchases do not block public conten
         json: { data: { label: 'POPULAR', products: [] } },
       });
   });
-  await page.goto('/');
+  await openHomepage(page);
   await expect(page.locator('.home-products-deals')).toBeVisible();
   const readyCart = page.getByRole('button', {
-    name: 'Add MartHub product 2 to cart',
+    name: 'Add to cart: MartHub product 2',
   });
   await expect(readyCart).toBeEnabled();
   // Wait for the approved disabled -> ready color transition before axe snapshots.
@@ -332,7 +332,7 @@ test('Admin public state and zero/one/two editorial partial/empty composition', 
     await page.route('**/api/v1/homepage', (route) =>
       route.fulfill({ json: payload }),
     );
-    await page.goto('/');
+    await openHomepage(page);
     await expect(page.locator('.home-mosaic .home-promo')).toHaveCount(3);
     await expect(page.locator('.home-products')).toHaveCount(0);
     await expect(page.locator('.home-editorial article')).toHaveCount(count);

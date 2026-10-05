@@ -78,7 +78,7 @@ test('customer login return, cart, wishlist, counts and rollback work responsive
     const mug = page
       .getByRole('article')
       .filter({ hasText: 'Cove Stoneware Mug' });
-    await mug.getByRole('button', { name: /add .* to cart/i }).click();
+    await mug.getByRole('button', { name: /^Add to cart:/i }).click();
     await expect(mug.getByText('1 added to cart.')).toBeVisible();
     await expect(page.getByLabel('1 items in cart')).toBeVisible();
     await mug.getByRole('button', { name: /save .* to wishlist/i }).click();
@@ -89,7 +89,7 @@ test('customer login return, cart, wishlist, counts and rollback work responsive
     const header = page.getByRole('banner');
     if (page.viewportSize().width < 768) {
       await header
-        .getByRole('button', { name: 'Mở điều hướng và tài khoản' })
+        .getByRole('button', { name: 'Menu — Mở điều hướng và tài khoản' })
         .click();
       await page
         .getByRole('dialog')

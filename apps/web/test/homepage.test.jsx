@@ -54,6 +54,23 @@ function mount(child) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('authoritative homepage presentation selection', () => {
+  it('renders public bootstrap content immediately and still revalidates through the existing API', async () => {
+    let complete;
+    const fetch = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+    vi.stubGlobal('fetch', fetch);
+    mount(<Homepage initialData={{ data: content([promo('bootstrap')]) }} />);
+    expect(screen.getByText('Story bootstrap')).toBeInTheDocument();
+    expect(screen.queryByText('Đang tải MartHub…')).not.toBeInTheDocument();
+    expect(fetch).toHaveBeenCalled();
+    complete(Response.json({ data: content() }));
+    expect(await screen.findByText('Khám phá MartHub')).toBeInTheDocument();
+    expect(screen.queryByText('Story bootstrap')).not.toBeInTheDocument();
+  });
   it('uses exact primary/secondary order and ignores surplus without mutation', () => {
     const rows = [
       promo('p1'),

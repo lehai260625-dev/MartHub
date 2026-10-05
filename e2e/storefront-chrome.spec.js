@@ -69,7 +69,7 @@ async function audit(page, name) {
 async function openAccount(page) {
   if (page.viewportSize().width < 768) {
     const trigger = page.getByRole('button', {
-      name: 'Mở điều hướng và tài khoản',
+      name: 'Menu — Mở điều hướng và tài khoản',
     });
     await trigger.click();
     return { trigger, menu: page.getByRole('dialog') };
@@ -108,7 +108,7 @@ test('guest search, truthful contexts, native focus order and footer routes work
   await page.keyboard.press('Tab');
   if (page.viewportSize().width < 768) {
     const trigger = header.getByRole('button', {
-      name: 'Mở điều hướng và tài khoản',
+      name: 'Menu — Mở điều hướng và tài khoản',
     });
     await expect(trigger).toBeFocused();
     await page.keyboard.press('Enter');

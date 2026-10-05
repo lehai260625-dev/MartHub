@@ -59,7 +59,7 @@ async function purchase(page, email, product, expectedTotal) {
     .click();
   await expect(page).toHaveURL('/products/' + product.slug);
   await page
-    .getByRole('button', { name: `Add ${product.name} to cart`, exact: true })
+    .getByRole('button', { name: `Add to cart: ${product.name}`, exact: true })
     .click();
   await expect(page.getByLabel('1 items in cart')).toBeVisible();
   await page.goto('/account');

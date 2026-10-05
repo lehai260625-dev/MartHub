@@ -180,11 +180,12 @@ function Welcome() {
   );
 }
 
-export function Homepage() {
+export function Homepage({ initialData } = {}) {
   const query = useQuery({
     queryKey: ['public-homepage'],
     queryFn: () => api('/homepage', { schema: homepageResponseSchema }),
     staleTime: 0,
+    initialData,
   });
   if (query.isPending)
     return (

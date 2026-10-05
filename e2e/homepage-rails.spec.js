@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { openHomepage } from './helpers/settled-ui.js';
 
 const id = (n) => `da7a0000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const product = (n) => ({
@@ -113,15 +114,16 @@ test('rail density, natural scroll, arrows/boundaries, snap, keyboard, resize an
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await fixture(page);
-  await page.goto('/');
+  await openHomepage(page);
   const section = page.locator('.home-products-deals'),
     rail = section.locator('.home-product-rail');
   await expect(rail.locator('.product-card')).toHaveCount(8);
-  await expect(section.getByRole('button', { name: /Add Long/ })).toBeEnabled();
-  await expect(section.getByRole('button', { name: /Add Long/ })).toHaveCSS(
-    'color',
-    'rgb(255, 255, 255)',
-  );
+  await expect(
+    section.getByRole('button', { name: /Add to cart: Long/ }),
+  ).toBeEnabled();
+  await expect(
+    section.getByRole('button', { name: /Add to cart: Long/ }),
+  ).toHaveCSS('color', 'rgb(255, 255, 255)');
   const width = page.viewportSize().width;
   const geometry = await rail.evaluate((el) => ({
     client: el.clientWidth,
@@ -288,11 +290,11 @@ test('equal media/cards, full exact prices, missing/broken images and action fee
       },
     }),
   );
-  await page.goto('/');
+  await openHomepage(page);
   const rail = page.locator('#home-rail-deals'),
     cards = rail.locator('.product-card');
   const first = cards.first(),
-    add = first.getByRole('button', { name: /Add Long/ });
+    add = first.getByRole('button', { name: /Add to cart: Long/ });
   await expect(page.getByRole('main')).toHaveAttribute('lang', 'vi');
   await expect(first).toHaveAttribute('lang', 'en');
   expect(await add.evaluate((node) => node.closest('[lang]').lang)).toBe('en');

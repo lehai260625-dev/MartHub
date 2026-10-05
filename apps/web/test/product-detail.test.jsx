@@ -114,7 +114,7 @@ describe('M3.7 product detail', () => {
     expect(screen.getByText(product.sku)).toBeVisible();
     expect(screen.getByLabelText('Quantity')).toBeEnabled();
     expect(
-      screen.getByRole('button', { name: /add .* to cart/i }),
+      screen.getByRole('button', { name: /^Add to cart:/i }),
     ).toBeEnabled();
     expect(screen.queryByText(/rating/i)).not.toBeInTheDocument();
   });

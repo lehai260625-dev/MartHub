@@ -66,7 +66,7 @@ test('owned-address COD checkout recovers a lost committed response without dupl
     await page.getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByText('Your cart is empty.')).toBeVisible();
     await page.goto(`/products/${product.slug}`);
-    await page.getByRole('button', { name: /add .* to cart/i }).click();
+    await page.getByRole('button', { name: /^Add to cart:/i }).click();
     await expect(page.getByLabel('1 items in cart')).toBeVisible();
     await page.goto('/account/addresses');
     for (const [label, value] of [

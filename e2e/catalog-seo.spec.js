@@ -15,6 +15,16 @@ test('catalog metadata, structured data, sitemap, and hidden-content handling ar
 }) => {
   await page.goto('/products/cove-stoneware-mug');
   await expect(page).toHaveTitle('Cove Stoneware Mug | MartHub');
+  await expect(page.locator('meta[name="description"]').last()).toHaveAttribute(
+    'content',
+    /\S/,
+  );
+  const bot = await request.get('/products/cove-stoneware-mug', {
+    headers: { 'User-Agent': 'bingbot' },
+  });
+  expect(bot.status()).toBe(200);
+  const botHead = (await bot.text()).match(/<head>([\s\S]*?)<\/head>/)[1];
+  expect(botHead).toMatch(/<meta name="description" content="[^"]+"/);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
     `${origin}/products/cove-stoneware-mug`,
@@ -47,6 +57,16 @@ test('catalog metadata, structured data, sitemap, and hidden-content handling ar
   );
 
   await page.goto('/search?q=mug');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Search results' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('search', { name: 'Storefront search' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('search', { name: 'Catalog search' }),
+  ).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
     `${origin}/search`,

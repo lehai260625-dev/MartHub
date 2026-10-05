@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { openHomepage } from './helpers/settled-ui.js';
 
 const id = (n) => `da7a0000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const promo = (
@@ -69,7 +70,11 @@ test('real homepage data selects backend stories/categories, verifies links and 
   request,
 }) => {
   const payload = await (await request.get('/api/v1/homepage')).json();
-  await page.goto('/');
+  const initialHtml = await (await request.get('/')).text();
+  expect(initialHtml).toContain('class="home-mosaic home-mosaic-3"');
+  expect(initialHtml).toContain('Make room for small rituals</h2>');
+  expect(initialHtml).not.toContain('class="home-loading-media"');
+  await openHomepage(page);
   await expect(page.locator('.home-mosaic .home-promo')).toHaveCount(3);
   expect(
     await page.locator('.home-mosaic .home-promo h2').allTextContents(),
@@ -145,7 +150,7 @@ test('fallback selection, long copy, broken media and eight parent shortcuts ret
     await held;
     await route.fulfill({ status: 404, body: '' });
   });
-  await page.goto('/');
+  await openHomepage(page);
   await expect(page.locator('.home-mosaic .home-promo')).toHaveCount(3);
   expect(
     await page.locator('.home-mosaic .home-promo h2').allTextContents(),
@@ -201,7 +206,7 @@ test('one/two/three and both-empty states omit empty slots and recover through r
         ].slice(0, count),
       ),
     );
-    await page.goto('/');
+    await openHomepage(page);
     await expect(page.locator('.home-promo')).toHaveCount(count);
     await expect(page.getByText('Danh mục đang được cập nhật.')).toBeVisible();
     await expect(page.locator('.home-category')).toHaveCount(0);
@@ -234,7 +239,7 @@ test('unsafe/unavailable targets retain copy, homepage failure retries without f
   const unavailable = page.waitForResponse((response) =>
     response.url().endsWith('/api/v1/products/m93-not-public'),
   );
-  await page.goto('/');
+  await openHomepage(page);
   expect((await unavailable).status()).toBe(404);
   await expect(page.locator('.home-promo')).toHaveCount(3);
   await expect(page.locator('.home-promo a')).toHaveCount(1);
@@ -257,11 +262,11 @@ test('unsafe/unavailable targets retain copy, homepage failure retries without f
       });
     } else await route.fulfill({ json: response([], [category(1)]) });
   });
-  await page.goto('/');
-  await expect(
-    page.getByRole('status').filter({ hasText: 'Đang tải MartHub' }),
-  ).toBeVisible();
-  await audit(page, 'loading');
+  await openHomepage(page);
+  // Server bootstrap remains usable while client revalidation is held.
+  await expect(page.locator('.home-mosaic .home-promo')).toHaveCount(3);
+  await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
+  await audit(page, 'bootstrap-revalidating');
   release();
   await expect(page.getByRole('main').getByRole('alert')).toContainText(
     'Không tải được',

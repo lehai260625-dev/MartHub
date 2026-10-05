@@ -21,7 +21,13 @@ import {
 
 function SearchForm({ query = '' }) {
   return (
-    <form action="/search" className="store-search" role="search" lang="en">
+    <form
+      action="/search"
+      className="store-search"
+      role="search"
+      aria-label="Storefront search"
+      lang="en"
+    >
       <label className="sr-only" htmlFor="store-search-query">
         Search products
       </label>
@@ -330,7 +336,7 @@ function HeaderChrome() {
         <button
           ref={drawerTrigger}
           className="store-mobile-trigger"
-          aria-label="Mở điều hướng và tài khoản"
+          aria-label="Menu — Mở điều hướng và tài khoản"
           aria-expanded={drawerOpen}
           aria-controls="store-mobile-navigation"
           onClick={openDrawer}

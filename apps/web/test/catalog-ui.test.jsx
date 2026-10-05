@@ -102,7 +102,7 @@ describe('M3.6 catalog components', () => {
     expect(within(card).getByText('New')).toBeVisible();
     expect(within(card).getByText('In stock')).toHaveClass('text-stock-in');
     expect(
-      within(card).getByRole('button', { name: /add .* to cart/i }),
+      within(card).getByRole('button', { name: /^Add to cart:/i }),
     ).toBeEnabled();
     expect(within(card).queryByText(/rating/i)).not.toBeInTheDocument();
 

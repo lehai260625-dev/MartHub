@@ -97,7 +97,12 @@ describe('M5.5 shopping interactions', () => {
       request,
     );
     const feedback = view.container.querySelector('.action-feedback');
-    const add = screen.getByRole('button', { name: /add .* to cart/i });
+    const add = screen.getByRole('button', {
+      name: 'Add to cart: Cove Stoneware Mug',
+      exact: true,
+    });
+    expect(add).toHaveTextContent('Add to cart');
+    expect(add.getAttribute('aria-label')).toContain(add.textContent);
     expect(feedback).toBeEmptyDOMElement();
     await waitFor(() => expect(add).toBeEnabled());
     fireEvent.click(add);
@@ -136,7 +141,7 @@ describe('M5.5 shopping interactions', () => {
       user: null,
       error: null,
     });
-    fireEvent.click(screen.getByRole('button', { name: /add .* to cart/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Add to cart:/i }));
     expect(navigation.push).toHaveBeenCalledWith(
       '/login?returnTo=%2Fsearch%3Fq%3Dmug',
     );
@@ -168,7 +173,7 @@ describe('M5.5 shopping interactions', () => {
       request,
     );
     const add = await screen.findByRole('button', {
-      name: /add .* to cart/i,
+      name: /^Add to cart:/i,
     });
     await waitFor(() => expect(add).toBeEnabled());
     fireEvent.click(add);
