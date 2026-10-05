@@ -8,12 +8,12 @@ test('storefront renders accessibly and recovers from missing pages', async ({
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
   await expect(page).toHaveTitle('MartHub');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Everyday shopping, thoughtfully arranged.',
-  );
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('MartHub');
   expect(
     await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
+      () =>
+        globalThis.document.documentElement.scrollWidth <=
+        globalThis.innerWidth,
     ),
   ).toBe(true);
   await page.keyboard.press('Tab');
@@ -41,7 +41,9 @@ test('storefront renders accessibly and recovers from missing pages', async ({
   ).toBeVisible();
   expect(
     await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
+      () =>
+        globalThis.document.documentElement.scrollWidth <=
+        globalThis.innerWidth,
     ),
   ).toBe(true);
   await page.getByRole('link', { name: 'Return to MartHub' }).click();

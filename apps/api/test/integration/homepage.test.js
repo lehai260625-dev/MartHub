@@ -158,6 +158,7 @@ test('homepage collections preserve public visibility, inventory state, and BIGI
     await prisma.category.delete({ where: { id: category.id } });
   });
   const visible = await homepage(app).expect(200);
+  assert.ok(visible.body.data.categories.some(({ id }) => id === category.id));
   for (const name of ['deals', 'newProducts', 'popularProducts']) {
     const card = visible.body.data[name].find(({ id }) => id === product.id);
     assert.equal(card.price, '9007199254740993');
@@ -171,11 +172,80 @@ test('homepage collections preserve public visibility, inventory state, and BIGI
     data: { status: 'ARCHIVED', archivedAt: new Date() },
   });
   const hidden = await homepage(app).expect(200);
+  assert.equal(
+    hidden.body.data.categories.some(({ id }) => id === category.id),
+    false,
+  );
   for (const name of ['deals', 'newProducts', 'popularProducts'])
     assert.equal(
       hidden.body.data[name].some(({ id }) => id === product.id),
       false,
     );
+});
+
+test('homepage category shortcuts retain root ordering and exclude archived roots/children', async (t) => {
+  const { app, prisma } = await setup(t);
+  const suffix = randomUUID();
+  const roots = [];
+  t.after(async () => {
+    await prisma.category.deleteMany({
+      where: { parentId: { in: roots.map((r) => r.id) } },
+    });
+    await prisma.category.deleteMany({
+      where: { id: { in: roots.map((r) => r.id) } },
+    });
+  });
+  for (const name of ['Z order fixture', 'A order fixture'])
+    roots.push(
+      await prisma.category.create({
+        data: {
+          name,
+          slug: `m93-${name[0].toLowerCase()}-${suffix}`,
+          status: 'ACTIVE',
+          sortOrder: -100,
+        },
+      }),
+    );
+  const child = await prisma.category.create({
+    data: {
+      name: 'Child fixture',
+      slug: `m93-child-${suffix}`,
+      status: 'ACTIVE',
+      parentId: roots[1].id,
+    },
+  });
+  const current = await homepage(app).expect(200);
+  assert.deepEqual(
+    current.body.data.categories.slice(0, 2).map((r) => r.id),
+    [roots[1].id, roots[0].id],
+  );
+  assert.equal(
+    current.body.data.categories.some((r) => r.id === child.id),
+    false,
+  );
+  assert.ok(
+    current.body.data.categories[0].children.some((r) => r.id === child.id),
+  );
+  await prisma.category.update({
+    where: { id: child.id },
+    data: { status: 'ARCHIVED', archivedAt: new Date() },
+  });
+  await prisma.category.update({
+    where: { id: roots[0].id },
+    data: { status: 'ARCHIVED', archivedAt: new Date() },
+  });
+  const archived = await homepage(app).expect(200);
+  assert.equal(
+    archived.body.data.categories.some((r) => r.id === roots[0].id),
+    false,
+  );
+  assert.equal(
+    archived.body.data.categories
+      .find((r) => r.id === roots[1].id)
+      .children.some((r) => r.id === child.id),
+    false,
+  );
+  assert.ok(archived.body.data.categories.length <= 8);
 });
 
 test('homepage rejects query parameters', async (t) => {

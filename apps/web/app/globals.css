@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import './visual-tokens.css';
 @import './storefront-chrome.css';
+@import './homepage.css';
 :root {
   color-scheme: light;
 }
