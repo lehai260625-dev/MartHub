@@ -15,6 +15,28 @@ function fixture(logger = () => {}) {
     },
   });
 }
+test('untrusted forwarding headers cannot replace the authoritative socket peer', async () => {
+  const app = createApp({
+    logger: () => {},
+    configureRouter(router) {
+      router.get('/peer', (req, res) =>
+        res.json({ ip: req.ip, peer: req.socket.remoteAddress, ips: req.ips }),
+      );
+    },
+  });
+  assert.equal(app.get('trust proxy'), false);
+  for (const forged of ['198.51.100.1', '203.0.113.2']) {
+    const response = await request(app)
+      .get('/api/v1/peer')
+      .set('X-Forwarded-For', forged)
+      .set('X-Real-IP', forged)
+      .set('Forwarded', `for=${forged};proto=https`)
+      .expect(200);
+    assert.equal(response.body.ip, response.body.peer);
+    assert.notEqual(response.body.ip, forged);
+    assert.deepEqual(response.body.ips, []);
+  }
+});
 test('request correlation, headers, and normalized 404/500', async () => {
   const app = fixture();
   const response = await request(app)
