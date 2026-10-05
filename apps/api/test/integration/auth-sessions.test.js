@@ -152,6 +152,101 @@ test('refresh rejects expired, unknown, suspended, and archived sessions', async
   }
 });
 
+test('refresh rotations preserve absolute family expiry and revoke at its exact boundary', async (t) => {
+  const { prisma, user } = await fixture(t);
+  let now = new Date('2026-10-05T00:00:00Z');
+  const sessions = createSessionService({ prisma, config, clock: () => now });
+  const original = await sessions.issue(user.id);
+  const expiresAt = original.expiresAt.getTime();
+  now = new Date(now.getTime() + 86400000);
+  const rotated = await sessions.rotate(original.refreshToken);
+  now = new Date(expiresAt - 1000);
+  const last = await sessions.rotate(rotated.refreshToken);
+  assert.equal(last.expiresAt.getTime(), expiresAt);
+  const rows = await prisma.refreshSession.findMany({
+    where: { userId: user.id },
+  });
+  assert.equal(rows.length, 3);
+  assert.ok(rows.every((row) => row.expiresAt.getTime() === expiresAt));
+  now = new Date(expiresAt);
+  await assert.rejects(sessions.rotate(last.refreshToken), {
+    status: 401,
+    code: 'UNAUTHORIZED',
+  });
+  const final = await prisma.refreshSession.findUnique({
+    where: { tokenHash: hash(last.refreshToken) },
+  });
+  assert.equal(final.revokeReason, 'EXPIRED');
+  assert.equal(final.revokedAt.getTime(), expiresAt);
+  assert.equal(
+    await prisma.refreshSession.count({
+      where: { userId: user.id, revokedAt: null },
+    }),
+    0,
+  );
+});
+
+test('successor persistence failure rolls back parent rotation and permits one safe retry', async (t) => {
+  const { prisma, user, sessions } = await fixture(t);
+  const issued = await sessions.issue(user.id);
+  const before = await prisma.refreshSession.findUnique({
+    where: { tokenHash: hash(issued.refreshToken) },
+  });
+  let inserted = 0;
+  const failing = new Proxy(prisma, {
+    get(target, field) {
+      if (field !== '$transaction') return target[field];
+      return (callback) =>
+        target.$transaction((tx) =>
+          callback(
+            new Proxy(tx, {
+              get(transaction, model) {
+                if (model !== 'refreshSession') return transaction[model];
+                return new Proxy(transaction.refreshSession, {
+                  get(delegate, operation) {
+                    if (operation !== 'create') return delegate[operation];
+                    return async (args) => {
+                      await delegate.create(args);
+                      inserted += 1;
+                      throw new Error('Injected successor persistence failure');
+                    };
+                  },
+                });
+              },
+            }),
+          ),
+        );
+    },
+  });
+  await assert.rejects(
+    createSessionService({ prisma: failing, config }).rotate(
+      issued.refreshToken,
+    ),
+    /Injected successor persistence failure/,
+  );
+  assert.equal(inserted, 1);
+  assert.deepEqual(
+    await prisma.refreshSession.findUnique({ where: { id: before.id } }),
+    before,
+  );
+  assert.equal(
+    await prisma.refreshSession.count({ where: { familyId: before.familyId } }),
+    1,
+  );
+  const retry = await sessions.rotate(issued.refreshToken);
+  const rows = await prisma.refreshSession.findMany({
+    where: { familyId: before.familyId },
+  });
+  assert.equal(rows.length, 2);
+  assert.equal(rows.filter((row) => row.revokedAt === null).length, 1);
+  const successorId = (await verifyAccessToken(retry.data.accessToken, config))
+    .sid;
+  assert.equal(
+    rows.find((row) => row.id === successorId).parentSessionId,
+    before.id,
+  );
+});
+
 test('HTTP auth enforces origin, production cookie scope, secret exclusion, rotation and no-store', async () => {
   const database = createDatabase(
     validateDatabaseUrl(process.env.DATABASE_URL),

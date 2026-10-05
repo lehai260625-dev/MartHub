@@ -3,6 +3,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import test from 'node:test';
 import { SignJWT } from 'jose';
 import { readAuthConfig } from '../src/config/auth.js';
+import { readRefreshCookie } from '../src/modules/auth/routes.js';
 import {
   signAccessToken,
   verifyAccessToken,
@@ -122,4 +123,93 @@ test('JWT rejects wrong issuer, audience, algorithm, malformed and unsigned toke
       status: 401,
     });
   }
+});
+
+test('signed JWT rejects missing, malformed and unsafe lifetime claims with a safe error', async () => {
+  const now = new Date('2026-10-05T00:00:00Z');
+  const issued = Math.floor(now.getTime() / 1000);
+  const claims = {
+    sub: randomUUID(),
+    sid: randomUUID(),
+    jti: randomUUID(),
+    role: 'CUSTOMER',
+    iss: config.issuer,
+    aud: config.audience,
+    iat: issued,
+    exp: issued + 900,
+  };
+  const sign = (payload, typ = 'JWT') =>
+    new SignJWT(payload)
+      .setProtectedHeader({ alg: 'HS256', typ })
+      .sign(config.secret);
+  const invalid = [];
+  for (const field of ['sub', 'sid', 'jti', 'role', 'iat', 'exp']) {
+    const missing = { ...claims };
+    delete missing[field];
+    invalid.push(missing);
+  }
+  for (const field of ['sub', 'sid', 'jti'])
+    for (const value of ['not-a-uuid', null, 123])
+      invalid.push({ ...claims, [field]: value });
+  for (const changes of [
+    { role: 'SUPERADMIN' },
+    { role: null },
+    { iat: issued + 6 },
+    { iat: issued + 0.5 },
+    { iat: String(issued) },
+    { exp: issued },
+    { exp: issued - 1 },
+    { exp: issued + 901 },
+    { exp: issued + 899.5 },
+    { exp: String(issued + 900) },
+    { nbf: issued + 1 },
+  ])
+    invalid.push({ ...claims, ...changes });
+  for (const payload of invalid)
+    await assert.rejects(verifyAccessToken(await sign(payload), config, now), {
+      status: 401,
+      code: 'UNAUTHORIZED',
+      message: 'Please sign in again.',
+    });
+  await assert.rejects(
+    verifyAccessToken(await sign(claims, 'other'), config, now),
+    {
+      status: 401,
+      code: 'UNAUTHORIZED',
+    },
+  );
+  for (const role of ['CUSTOMER', 'ADMIN'])
+    assert.equal(
+      (await verifyAccessToken(await sign({ ...claims, role }), config, now))
+        .role,
+      role,
+    );
+  assert.equal(
+    (
+      await verifyAccessToken(
+        await sign({ ...claims, iat: issued + 5 }),
+        config,
+        now,
+      )
+    ).iat,
+    issued + 5,
+  );
+});
+
+test('refresh cookie parser accepts exactly one exact cookie name and rejects ambiguous credentials', () => {
+  const read = (cookie) => readRefreshCookie({ get: () => cookie });
+  assert.equal(read(undefined), null);
+  assert.equal(
+    read('other=value; mh_refresh=opaque; trailing=value'),
+    'opaque',
+  );
+  assert.equal(read('  mh_refresh=opaque  '), 'opaque');
+  for (const cookie of [
+    'mh_refresh=first; mh_refresh=second',
+    'mh_refresh=same; mh_refresh=same',
+    'prefix_mh_refresh=opaque',
+    'mh_refresh_extra=opaque',
+    'MH_REFRESH=opaque',
+  ])
+    assert.equal(read(cookie), null);
 });
